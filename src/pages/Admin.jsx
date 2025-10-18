@@ -16,8 +16,9 @@ function PostsPanel({token}){
   const[title,setTitle]=useState(''); const[tagline,setTagline]=useState('')
   const[query,setQuery]=useState('')
   const[checked,setChecked]=useState({})
+  const[status,setStatus]=useState('')
 
-  async function load(){const r=await fetch(`${API_BASE}/api/posts`); const j=await r.json(); setPosts(Array.isArray(j)?j:[])}
+  async function load(){ try{ const r=await fetch(`${API_BASE}/api/posts`); const j=await r.json(); setPosts(Array.isArray(j)?j:[]) }catch{ setPosts([]) } }
   useEffect(()=>{load()},[])
 
   const filtered=useMemo(()=>{
@@ -31,16 +32,36 @@ function PostsPanel({token}){
   const selected=Object.keys(checked).filter(k=>checked[k])
 
   async function softDeleteMany(){ if(!selected.length) return
+    setStatus('Trashing...')
     await fetch(`${API_BASE}/api/soft-delete`,{method:'POST',headers:{'Content-Type':'application/json','x-admin-token':token},body:JSON.stringify({filenames:selected})})
-    setChecked({}); load()
+    setChecked({}); setStatus(''); load()
   }
   async function restoreMany(){ if(!selected.length) return
+    setStatus('Restoring...')
     await fetch(`${API_BASE}/api/restore`,{method:'POST',headers:{'Content-Type':'application/json','x-admin-token':token},body:JSON.stringify({filenames:selected})})
-    setChecked({}); load()
+    setChecked({}); setStatus(''); load()
   }
   async function saveMeta(){ if(!editing) return
-    await fetch(`${API_BASE}/api/meta`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:editing,title,tagline})})
-    setEditing(null); load()
+    setStatus('Saving...')
+    await fetch(`${API_BASE}/api/meta`,{method:'POST',headers:{'Content-Type':'application/json','x-admin-token':token},body:JSON.stringify({filename:editing,title,tagline})})
+    setEditing(null); setStatus(''); load()
+  }
+
+  async function makeVideo(fn){
+    try{
+      setStatus('Rendering video...')
+      const r = await fetch(`${API_BASE}/api/generate-video`, {
+        method:'POST', headers:{'Content-Type':'application/json','x-admin-token':token},
+        body: JSON.stringify({ filename: fn, title: '' })
+      })
+      const j = await r.json().catch(()=>({}))
+      if(!r.ok){ alert(`Video failed: ${j?.error||r.statusText}`) }
+      else { alert('Video created') }
+    }catch(e){
+      alert('Video failed')
+    }finally{
+      setStatus(''); load()
+    }
   }
 
   return (<div className="bg-white border border-[#dcdcdc] rounded-b p-4">
@@ -48,6 +69,7 @@ function PostsPanel({token}){
       <input placeholder="Filter…" value={query} onChange={e=>setQuery(e.target.value)} className="border border-[#dcdcdc] rounded px-3 py-2 text-sm w-full"/>
       <button onClick={load} className="px-3 py-2 text-sm underline text-[#052962]">Refresh</button>
     </div>
+    {status && <p className="text-xs text-[#666] mb-2">{status}</p>}
     <div className="flex items-center gap-3 mb-2">
       <label className="text-sm"><input type="checkbox" onChange={toggleAll}/> Select all (filtered)</label>
       <button onClick={softDeleteMany} className="px-3 py-1.5 bg-[#052962] text-white rounded text-sm disabled:opacity-50" disabled={!selected.length}>Trash</button>
@@ -64,8 +86,7 @@ function PostsPanel({token}){
         </label>
         <div className="flex gap-3 items-center shrink-0">
           <a href={p.absoluteUrl||p.url} target="_blank" className="text-sm underline text-[#052962]">Open</a>
-          {p.type==='audio' && <button onClick={async()=>{await fetch((import.meta.env.VITE_API_BASE||'https://the-gargantuan-backend.onrender.com')+'/api/generate-video',{method:'POST',headers:{'Content-Type':'application/json','x-admin-token':token},body:JSON.stringify({filename:p.filename,title:p.title||''})}); load();}} className="text-sm underline text-[#052962]">Make Video</button>}
-          <button onClick={()=>{setEditing(p.filename); setTitle(p.title||''); setTagline(p.tagline||'')}} className="text-sm underline text-[#052962]">Edit</button>
+          {p.type==='audio' && <button onClick={()=>makeVideo(p.filename)} className="text-sm underline text-[#052962]">Make Video</button>}
         </div>
       </li>))}
     </ul>

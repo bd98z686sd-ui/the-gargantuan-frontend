@@ -10,46 +10,30 @@ export default function Uploader({token,toast,onUploaded}){
   function onDrag(e){e.preventDefault();setDrag(true)}; function onLeave(e){e.preventDefault();setDrag(false)}
 
   async function upload(){
-    const f=ref.current?.files?.[0]; if(!f) return toast?.show('Pick a file','error')
+    const f=ref.current?.files?.[0]; if(!f) return alert('Pick a file')
     setBusy(true); setProgress(0)
     try{
       const fd=new FormData(); fd.append('audio',f)
-      // upload with progress
       const fileKey = await new Promise((resolve,reject)=>{ const xhr=new XMLHttpRequest()
         xhr.open('POST', `${API_BASE}/api/upload`); xhr.setRequestHeader('x-admin-token', token||'')
         xhr.upload.onprogress = (e)=>{ if(e.lengthComputable) setProgress(Math.round((e.loaded/e.total)*100)) }
-        xhr.onload=()=>{
-          try{
-            const j = JSON.parse(xhr.responseText||'{}')
-            if(xhr.status>=200 && xhr.status<300 && j.key) resolve(j.key); else reject(new Error('upload failed'))
-          }catch{ reject(new Error('upload failed')) }
-        }
+        xhr.onload=()=>{ try{ const j=JSON.parse(xhr.responseText||'{}'); if(xhr.status>=200&&xhr.status<300&&j.key){ resolve(j.key) } else { reject(new Error(j.error||'upload failed')) } }catch{ reject(new Error('upload failed')) } }
         xhr.onerror=reject; xhr.send(fd)
       })
+      alert('Uploaded')
 
-      toast?.show('Uploaded','ok')
-
-      // optionally auto-generate spectral video
       if (autoVideo && fileKey) {
-        try{
-          const r = await fetch(`${API_BASE}/api/generate-video`, {
-            method:'POST',
-            headers:{'Content-Type':'application/json','x-admin-token':token||''},
-            body: JSON.stringify({ filename: fileKey, title: '' })
-          })
-          if(r.ok){
-            const j = await r.json()
-            toast?.show('Spectral video created','ok')
-          } else {
-            toast?.show('Video render failed','error')
-          }
-        }catch{
-          toast?.show('Video render failed','error')
-        }
+        const r = await fetch(`${API_BASE}/api/generate-video`, {
+          method:'POST',
+          headers:{'Content-Type':'application/json','x-admin-token':token||''},
+          body: JSON.stringify({ filename: fileKey, title: '' })
+        })
+        const j = await r.json().catch(()=>({}))
+        if(!r.ok){ alert(`Video failed: ${j?.error||r.statusText}`) } else { alert('Spectral video created') }
       }
 
       onUploaded?.()
-    }catch(e){ toast?.show('Upload failed','error') }
+    }catch(e){ alert(e.message||'Upload failed') }
     finally{ setBusy(false); setProgress(0) }
   }
 
