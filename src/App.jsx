@@ -49,8 +49,10 @@ export default function App() {
     <div className="min-h-screen bg-guardianWhite text-guardianText">
       {/* Masthead */}
       <header className="bg-guardianBlue text-white px-6 py-4 border-b-4 border-guardianRed">
-        <h1 className="text-4xl font-serif italic">The Gargantuan</h1>
-        <p className="text-sm mt-1 text-gray-200">
+        <h1 className="text-5xl font-serif font-extrabold italic tracking-tight">
+          The Gargantuan
+        </h1>
+        <p className="text-sm mt-2 text-gray-200 tracking-wide">
           {today} · Edited by The Gargantuan
         </p>
       </header>
@@ -58,37 +60,37 @@ export default function App() {
       {/* Hero Section */}
       {posts[0] && (
         <section
-          className="relative h-[60vh] flex flex-col justify-end bg-cover bg-center text-white p-6"
+          className="relative h-[65vh] flex flex-col justify-end bg-cover bg-center text-white p-6"
           style={{
             backgroundImage: `url(${posts[0].image})`,
             backgroundColor: "#052962",
           }}
         >
-          <div className="bg-black/40 p-4 rounded max-w-2xl">
-            <h2 className="text-3xl font-serif mb-2">{posts[0].title}</h2>
-            <p className="italic text-guardianRed">{posts[0].subtitle}</p>
+          <div className="bg-black/50 p-6 rounded max-w-2xl">
+            <h2 className="text-4xl font-headline leading-snug mb-2">{posts[0].title}</h2>
+            <p className="italic text-guardianRed text-lg">{posts[0].subtitle}</p>
           </div>
         </section>
       )}
 
       {/* Sub Stories */}
-      <section className="grid md:grid-cols-3 gap-6 p-6">
+      <section className="grid md:grid-cols-3 gap-8 p-8">
         {posts.slice(1).map((post) => (
           <article
             key={post.id}
             className="border-t border-gray-300 pt-4 hover:opacity-90 transition"
           >
-            <h3 className="font-serif text-xl mb-2">{post.title}</h3>
-            <p className="text-sm text-gray-600 mb-2">{post.subtitle}</p>
-            <p className="text-xs text-gray-400">{post.date}</p>
+            <h3 className="font-headline text-2xl mb-2">{post.title}</h3>
+            <p className="text-sm text-gray-700 mb-2 font-sans">{post.subtitle}</p>
+            <p className="text-xs text-gray-500">{post.date}</p>
           </article>
         ))}
       </section>
 
       {/* Footer */}
-      <footer className="bg-guardianBlue text-white text-center py-6 mt-12">
-        <p>© {new Date().getFullYear()} The Gargantuan</p>
-        <p className="text-sm text-gray-300">Contact: hellogargantuan69@gmail.com</p>
+      <footer className="bg-guardianBlue text-white text-center py-8 mt-16">
+        <p className="font-serif text-lg">© {new Date().getFullYear()} The Gargantuan</p>
+        <p className="text-sm text-gray-300 mt-1">Contact: hellogargantuan69@gmail.com</p>
       </footer>
     </div>
   );
