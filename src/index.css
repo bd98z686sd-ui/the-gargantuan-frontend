@@ -1,13 +1,1 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-:root {
-  --blue: #052962;
-  --red: #c70000;
-  --paper: #f6f6f6;
-  --ink: #121212;
-}
-
-body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif; }
-a { text-decoration: none; }
+@import "tailwindcss";
