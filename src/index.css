@@ -1,0 +1,5 @@
+@import 'tailwindcss';
+:root{--blue:#052962;--red:#c70000;}
+.font-serif{font-family:'Playfair Display',serif;}
+.font-sans{font-family:'Inter',system-ui,Arial,sans-serif;}
+a { text-decoration-thickness: 2px; text-underline-offset: 4px; }
