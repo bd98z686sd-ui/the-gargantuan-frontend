@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-// Toggle to preview with sample content when backend isn't ready
 const SAMPLE_MODE = false;
 
 const sample = [
@@ -56,7 +55,6 @@ export default function App() {
     year: "numeric",
   });
 
-  // Normalize to a consistent shape for UI
   const normalized = useMemo(() => {
     return (posts || []).map((p, idx) => ({
       id: p.id ?? idx,
@@ -149,7 +147,7 @@ export default function App() {
                 <div className="w-full aspect-video bg-guardianBlue" />
               )}
               <div className="p-4">
-                <h5 className="font-headline text-xl mb-1">{p.title}</h5>
+                <h5 className="=">"font-headline text-xl mb-1">{p.title}</h5>
                 {p.date && <p className="text-xs text-gray-500">{p.date}</p>}
               </div>
             </article>
