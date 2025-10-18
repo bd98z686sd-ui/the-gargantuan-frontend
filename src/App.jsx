@@ -74,26 +74,29 @@ export default function App() {
   return (
     <div className="min-h-screen bg-guardianWhite text-guardianText">
       {/* Masthead */}
-      <header className="sticky top-0 z-50 bg-guardianBlue text-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="py-4 border-b-4 border-guardianRed">
-            <h1 className="text-4xl sm:text-5xl font-serif italic font-extrabold tracking-tight">The Gargantuan</h1>
-            <p className="text-sm mt-1 text-white/80">{today} · Edited by The Gargantuan</p>
-          </div>
+<header className="sticky top-0 z-50 bg-guardianBlue text-white shadow-sm">
+  <div className="max-w-6xl mx-auto px-4 sm:px-6">
+    <div className="py-3 sm:py-4 border-b-4 border-guardianRed">
+      <h1 className="text-5xl sm:text-6xl font-serif italic font-extrabold tracking-tight">
+        The Gargantuan
+      </h1>
+      <p className="text-xs sm:text-sm mt-1 text-white/80">
+        {today} · Edited by The Gargantuan
+      </p>
+    </div>
 
-          {/* Nav */}
-          <nav className="flex gap-5 py-3 text-sm uppercase tracking-wide">
-            {["News", "Culture", "Sound", "Ideas", "Dispatches"].map((item) => (
-              <a key={item} href="#" className="hover:underline decoration-2 underline-offset-4 decoration-guardianRed">
-                {item}
-              </a>
-            ))}
-          </nav>
-        </div>
-      </header>
+    <nav className="flex gap-5 py-2 sm:py-3 text-xs sm:text-sm uppercase tracking-wide font-semibold">
+      {["News","Culture","Sound","Ideas","Dispatches"].map((item)=>(
+        <a key={item} href="#" className="hover:underline decoration-2 underline-offset-4 decoration-guardianRed">
+          {item}
+        </a>
+      ))}
+    </nav>
+  </div>
+</header>
 
       {/* Main content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
         {/* Hero + Sidebar */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Hero */}
@@ -110,10 +113,16 @@ export default function App() {
                     <div className="w-full aspect-video bg-guardianBlue" />
                   )}
                   {/* Overlay title */}
-                  <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/70 to-transparent">
-                    <h2 className="text-white font-serif text-3xl sm:text-4xl leading-tight mb-2">{hero.title}</h2>
-                    {hero.subtitle ? <p className="text-guardianRed italic">{hero.subtitle}</p> : null}
-                  </div>
+       <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6 bg-gradient-to-t from-black/75 via-black/20 to-transparent">
+  <h2 className="text-white font-serif text-3xl sm:text-4xl leading-tight mb-2 max-w-3xl">
+    {hero.title}
+  </h2>
+  {hero.subtitle && (
+    <p className="italic text-guardianRed text-base sm:text-lg max-w-2xl">
+      {hero.subtitle}
+    </p>
+  )}
+</div>
                 </>
               ) : (
                 <div className="w-full aspect-video bg-guardianBlue" />
