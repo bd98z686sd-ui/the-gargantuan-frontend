@@ -1,1 +1,20 @@
 @import "tailwindcss";
+
+/* Simple snackbar styles (bottom-right) */
+.snackbar {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 60;
+  min-width: 260px;
+  max-width: 90vw;
+  padding: .75rem 1rem;
+  border-radius: .5rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,.2);
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+}
+.snackbar--ok { background: #052962; color: white; }
+.snackbar--error { background: #c70000; color: white; }
+.snackbar__close { margin-left: auto; background: transparent; border: 0; color: inherit; font-weight: 700; }

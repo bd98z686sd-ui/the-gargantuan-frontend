@@ -2,7 +2,7 @@ import React, { useRef, useState, useCallback } from 'react';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'https://the-gargantuan-backend.onrender.com';
 
-export default function Uploader({ onDone, token, requireToken }) {
+export default function Uploader({ onDone, token, requireToken, toast }) {
   const fileRef = useRef(null);
   const [title, setTitle] = useState('The Gargantuan');
   const [status, setStatus] = useState('idle'); // idle | uploading | generating | done | error
@@ -17,7 +17,6 @@ export default function Uploader({ onDone, token, requireToken }) {
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
       if (file && file.type.match(/audio\/(mp3|mpeg)/)) {
-        // programmatically set file input
         const dt = new DataTransfer();
         dt.items.add(file);
         fileRef.current.files = dt.files;
@@ -25,15 +24,19 @@ export default function Uploader({ onDone, token, requireToken }) {
       } else {
         setStatus('error');
         setMessage('Please drop an MP3 file.');
+        toast?.show('Please drop an MP3 file.', 'error');
       }
     }
-  }, []);
+  }, [toast]);
 
-  function onDragOver(e) {
-    e.preventDefault(); e.stopPropagation(); setDragActive(true);
-  }
-  function onDragLeave(e) {
-    e.preventDefault(); e.stopPropagation(); setDragActive(false);
+  function onDragOver(e) { e.preventDefault(); e.stopPropagation(); setDragActive(true); }
+  function onDragLeave(e) { e.preventDefault(); e.stopPropagation(); setDragActive(false); }
+
+  function handleUnauthorized(where='request') {
+    setStatus('error');
+    const msg = `Unauthorized (${where}). Check your admin token.`;
+    setMessage(msg);
+    toast?.show(msg, 'error');
   }
 
   async function handleUpload(e) {
@@ -42,11 +45,11 @@ export default function Uploader({ onDone, token, requireToken }) {
     if (!file) {
       setStatus('error');
       setMessage('Please choose an audio file (.mp3)');
+      toast?.show('Please choose an audio file (.mp3)', 'error');
       return;
     }
     if (requireToken && !token) {
-      setStatus('error');
-      setMessage('Admin token required. Set it in the panel above.');
+      handleUnauthorized('no token provided');
       return;
     }
     try {
@@ -58,7 +61,7 @@ export default function Uploader({ onDone, token, requireToken }) {
       const fd = new FormData();
       fd.append('audio', file);
 
-      const uploadRes = await new Promise((resolve, reject) => {
+      const upJson = await new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open('POST', `${API_BASE}/api/upload`);
         if (token) xhr.setRequestHeader('x-admin-token', token);
@@ -69,14 +72,23 @@ export default function Uploader({ onDone, token, requireToken }) {
           }
         };
         xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) resolve({ ok: true, json: () => JSON.parse(xhr.responseText) });
-          else reject(new Error(`Upload failed (${xhr.status})`));
+          if (xhr.status === 401) return reject({ unauthorized: true });
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try { resolve(JSON.parse(xhr.responseText)); }
+            catch { reject(new Error('Bad JSON from server')); }
+          } else {
+            reject(new Error(`Upload failed (${xhr.status})`));
+          }
         };
         xhr.onerror = () => reject(new Error('Network error during upload'));
         xhr.send(fd);
+      }).catch((err) => {
+        if (err && err.unauthorized) { handleUnauthorized('upload'); }
+        else { setStatus('error'); setMessage(err.message || 'Upload failed'); toast?.show(err.message || 'Upload failed', 'error'); }
+        throw err;
       });
 
-      const upJson = await uploadRes.json();
+      if (!upJson || !upJson.filename) return;
 
       setStatus('generating');
       setMessage('Generating video…');
@@ -90,16 +102,19 @@ export default function Uploader({ onDone, token, requireToken }) {
         body: JSON.stringify({ filename: upJson.filename, title }),
       });
 
+      if (gen.status === 401) {
+        handleUnauthorized('generate');
+        return;
+      }
       if (!gen.ok) throw new Error(`Generate failed (${gen.status})`);
       const genJson = await gen.json();
 
       setStatus('done');
       setMessage('All done! Refreshing feed…');
+      toast?.show('Published successfully.', 'ok');
       setTimeout(() => onDone?.(genJson), 800);
     } catch (err) {
-      console.error(err);
-      setStatus('error');
-      setMessage(err.message || 'Something went wrong');
+      // already handled
     }
   }
 
@@ -145,14 +160,12 @@ export default function Uploader({ onDone, token, requireToken }) {
           </button>
         </div>
 
-        {/* Progress bar */}
         {(status === 'uploading') && (
           <div className="w-full bg-[#eee] rounded h-2 overflow-hidden">
             <div className="h-2 bg-[#052962] transition-all" style={{ width: `${progress}%` }} />
           </div>
         )}
 
-        {/* Indeterminate bar for generating step */}
         {(status === 'generating') && (
           <div className="w-full bg-[#eee] rounded h-2 overflow-hidden relative">
             <div className="h-2 bg-[#052962] animate-pulse w-1/3 absolute left-0 right-0" />
@@ -168,7 +181,7 @@ export default function Uploader({ onDone, token, requireToken }) {
         )}
       </form>
 
-      <p className="text-xs text-[#777] mt-3">If publishing is restricted, the admin token will be sent as <code>x-admin-token</code>.</p>
+      <p className="text-xs text-[#777] mt-3">If enabled, the admin token is required and sent as <code>x-admin-token</code>.</p>
     </div>
   );
 }

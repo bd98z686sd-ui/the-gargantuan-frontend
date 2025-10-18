@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Uploader from "./Uploader.jsx";
 import AdminPanel from "./AdminPanel.jsx";
+import Snackbar from "./Snackbar.jsx";
+import { useSnackbar } from "./useSnackbar.js";
 import { useAdminToken } from "./useAdminToken.js";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "https://the-gargantuan-backend.onrender.com";
 
-function usePosts() {
+function usePosts(toast) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -21,6 +23,7 @@ function usePosts() {
     } catch (e) {
       console.error(e);
       setError("Could not load posts.");
+      toast?.show("Could not load posts.", "error");
     } finally {
       setLoading(false);
     }
@@ -31,8 +34,9 @@ function usePosts() {
 }
 
 export default function App() {
-  const { posts, loading, error, reload } = usePosts();
+  const toast = useSnackbar();
   const { token, setToken, requireToken, setRequireToken } = useAdminToken();
+  const { posts, loading, error, reload } = usePosts(toast);
 
   const today = new Date().toLocaleDateString("en-GB", {
     day: "numeric",
@@ -79,7 +83,7 @@ export default function App() {
           setRequireToken={setRequireToken}
         />
 
-        <Uploader onDone={() => setTimeout(reload, 1200)} token={token} requireToken={requireToken} />
+        <Uploader onDone={() => setTimeout(reload, 1200)} token={token} requireToken={requireToken} toast={toast} />
 
         {/* Hero + List */}
         {loading && <div className="bg-white border border-[#dcdcdc] rounded p-4">Loading…</div>}
@@ -142,6 +146,8 @@ export default function App() {
           <p className="text-sm text-white/80">Contact: hellogargantuan69@gmail.com</p>
         </div>
       </footer>
+
+      <Snackbar open={toast.open} kind={toast.kind} message={toast.message} onClose={toast.close} />
     </div>
   );
 }

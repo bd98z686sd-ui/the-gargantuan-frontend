@@ -19,7 +19,7 @@ export default function AdminPanel({ token, setToken, requireToken, setRequireTo
         onChange={(e) => setToken(e.target.value)}
         className="border border-[#dcdcdc] rounded px-3 py-2 text-sm flex-1 w-full sm:w-80"
       />
-      <span className="text-xs text-[#777]">Saved locally in your browser.</span>
+      <span className="text-xs text-[#777]">Stored locally; header <code>x-admin-token</code> is used.</span>
     </div>
   );
 }
