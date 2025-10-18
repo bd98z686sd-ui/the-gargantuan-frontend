@@ -6,7 +6,8 @@ export default {
         guardianBlue: "#052962",
         guardianRed: "#c70000",
         guardianWhite: "#f6f6f6",
-        guardianText: "#121212"
+        guardianText: "#121212",
+        guardianGrey: "#dcdcdc"
       },
       fontFamily: {
         serif: ["Playfair Display", "Georgia", "serif"],
