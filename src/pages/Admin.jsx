@@ -9,6 +9,7 @@ export default function Admin(){
   const [logs,setLogs]=useState([])
   const [items,setItems]=useState([])
   const [filter,setFilter]=useState('active')
+  const [search,setSearch]=useState('')
   const dropRef=useRef(null)
 
   function log(s){ setLogs(l=>[s,...l]) }
@@ -16,8 +17,11 @@ export default function Admin(){
 
   const refresh = async()=>{
     try{
-      const url = API + '/api/posts' + (filter==='all' ? '?includeDeleted=1' : filter==='deleted' ? '?deleted=1' : '')
-      const res = await fetch(url, { headers: headers() })
+      const qs = new URLSearchParams()
+      if(filter==='deleted') qs.set('deleted','1')
+      if(filter==='all') qs.set('includeDeleted','1')
+      if(search.trim()) qs.set('q',search.trim())
+      const res = await fetch(`${API}/api/posts${qs.toString()?`?${qs.toString()}`:''}`, { headers: headers() })
       const arr = await res.json()
       const sorted = [...(arr||[])].sort((a,b)=> (new Date(b.createdAt||0))-(new Date(a.createdAt||0)))
       setItems(sorted)
@@ -39,7 +43,6 @@ export default function Admin(){
   async function uploadFile(file){
     setProgress(0); setFilename('')
     const form=new FormData(); form.append('audio',file)
-    log('Uploading '+file.name+' …')
     const xhr = new XMLHttpRequest()
     xhr.open('POST', API + '/api/upload')
     xhr.setRequestHeader('x-admin-token', token)
@@ -60,12 +63,13 @@ export default function Admin(){
     xhr.send(form)
   }
 
-  async function request(kind){
-    if(!filename){ log('No file uploaded'); return }
+  async function request(kind, fileOverride){
+    const target = fileOverride || filename
+    if(!target){ log('No file to process'); return }
     const url = kind==='short' ? '/api/generate-short' : '/api/generate-video'
     const res = await fetch(API+url, {
       method:'POST', headers:{...headers(), 'Content-Type':'application/json'},
-      body: JSON.stringify({ filename, title:'The Gargantuan'})
+      body: JSON.stringify({ filename: target, title:'The Gargantuan'})
     })
     const data = await res.json().catch(()=>({}))
     log(kind+' → '+JSON.stringify(data))
@@ -102,81 +106,90 @@ export default function Admin(){
     if(!ok) log('Save title failed'); else { log('Saved title'); refresh() }
   }
 
-  if(!authed){
-    return(<div className="container" style={{paddingBottom:'60px'}}>
-      <header className="mast"><div className="mwrap"><div className="brand">The Gargantuan — Admin</div><div className="redbar"></div></div></header>
-      <main className="container">
-        <h2 className="title" style={{fontSize:28}}>Admin access</h2>
-        <input className="token" value={token} onChange={e=>setToken(e.target.value)} placeholder="Enter admin token" />
-        <div className="row"><button className="btn" onClick={saveToken}>Save</button></div>
-        <p className="small">Token is stored locally and sent as <code class="inline">x-admin-token</code>.</p>
-      </main>
-      <footer className="footer">© {new Date().getFullYear()} The Gargantuan</footer>
-    </div>)
-  }
-
-  return(<div style={{paddingBottom:'60px'}}>
-    <header className="mast"><div className="mwrap"><div className="brand">The Gargantuan — Admin</div><div className="redbar"></div></div></header>
-
-    <main className="container">
-      <div className="card">
-        <h2 className="title" style={{fontSize:28,marginTop:0}}>Upload audio</h2>
-        <div ref={dropRef} className="zone">Drag & drop MP3/M4A here, or <input type="file" accept="audio/*" onChange={e=>e.target.files[0]&&uploadFile(e.target.files[0])} /></div>
-        <div className="row">
-          <div className="progress"><div style={{width:progress+'%'}}></div></div>
-          {filename && <span className="small">Saved as <code className="inline">{filename}</code></span>}
-        </div>
-        <div className="row">
-          <button className="btn" onClick={()=>request('video')}>Create Video</button>
-          <button className="btn secondary" onClick={()=>request('short')}>Create Short</button>
-          <button className="btn secondary" onClick={refresh}>Refresh</button>
+  return(<div className="min-h-screen bg-[#f6f6f6] pb-20">
+    <header className="sticky top-0 z-50 bg-[#052962] text-white shadow-sm">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        <div className="py-3 sm:py-4 border-b-4 border-[#c70000]">
+          <h1 className="brand-tt text-4xl sm:text-5xl tracking-tight">The Gargantuan — Admin</h1>
         </div>
       </div>
+    </header>
 
-      <div className="card">
-        <h3 className="title" style={{fontSize:22,marginTop:0}}>All posts</h3>
-        <div className="row">
-          <label className="small">Filter: </label>
-          <select className="input" style={{maxWidth:160}} value={filter} onChange={e=>setFilter(e.target.value)}>
-            <option value="active">Active</option>
-            <option value="deleted">Deleted</option>
-            <option value="all">All</option>
-          </select>
-          <button className="btn secondary" onClick={refresh}>Reload</button>
-        </div>
-        <table className="table">
-          <thead><tr><th>Title</th><th>Media</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody>
-            {items.map(p=>{
-              const id = p.id || p._id || p.key || p.filename
-              const deleted = !!p.deleted
-              const media = p.videoUrl || p.url || p.audioUrl || p.filename
-              const date = p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'}) : ''
-              return (<tr key={id}>
-                <td>
-                  <input className="input" defaultValue={p.title||p.filename} onBlur={e=>saveTitle(id,e.target.value)} />
-                </td>
-                <td className="small" title={media}>{(media||'').toString().slice(0,38)}…</td>
-                <td className="small">{date}</td>
-                <td>{deleted ? <span className="badge">deleted</span> : <span className="badge" style={{background:'#e3f7e5'}}>active</span>}</td>
-                <td>
-                  {!deleted ? <button className="btn secondary" onClick={()=>del(id)}>Delete</button>
-                            : <button className="btn" onClick={()=>restore(id)}>Restore</button>}
-                </td>
-              </tr>)
-            })}
-          </tbody>
-        </table>
+    <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <section className="lg:col-span-1 bg-white border border-gray-200 rounded-lg p-4">
+          <h2 className="headline-tt text-xl mb-3">Upload audio</h2>
+          <div ref={dropRef} className="border-2 border-dashed rounded-lg p-5 text-center text-gray-600">
+            Drag & drop MP3/M4A here, or{" "}
+            <input type="file" accept="audio/*" onChange={e=>e.target.files[0]&&uploadFile(e.target.files[0])} />
+          </div>
+          <div className="mt-3">
+            <div className="w-full max-w-md h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-2 bg-[#c70000]" style={{width:progress+'%'}}></div>
+            </div>
+            {filename && <div className="text-xs text-gray-600 mt-1">Saved as <code className="bg-gray-100 rounded px-1">{filename}</code></div>}
+          </div>
+          <div className="mt-3 flex gap-2">
+            <button className="bg-[#052962] text-white px-3 py-2 rounded" onClick={()=>request('video')}>Create Video</button>
+            <button className="bg-gray-100 px-3 py-2 rounded border" onClick={()=>request('short')}>Create Short</button>
+          </div>
+        </section>
+
+        <section className="lg:col-span-2 bg-white border border-gray-200 rounded-lg p-4">
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <h2 className="headline-tt text-xl mr-auto">All posts</h2>
+            <select className="border rounded px-2 py-1" value={filter} onChange={e=>setFilter(e.target.value)}>
+              <option value="active">Active</option>
+              <option value="deleted">Deleted</option>
+              <option value="all">All</option>
+            </select>
+            <input className="border rounded px-2 py-1" placeholder="Search..." value={search} onChange={e=>setSearch(e.target.value)} />
+            <button className="bg-gray-100 px-3 py-2 rounded border" onClick={refresh}>Reload</button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead><tr className="text-left border-b">
+                <th className="py-2 pr-3">Title</th>
+                <th className="py-2 pr-3">Media</th>
+                <th className="py-2 pr-3">Date</th>
+                <th className="py-2 pr-3">Status</th>
+                <th className="py-2">Actions</th>
+              </tr></thead>
+              <tbody>
+                {items.map(p=>{
+                  const id = p.id || p._id || p.key || p.filename
+                  const deleted = !!p.deleted
+                  const media = p.videoUrl || p.url || p.audioUrl || p.filename
+                  const date = p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'}) : ''
+                  return (<tr key={id} className="border-b">
+                    <td className="py-2 pr-3"><input className="border rounded px-2 py-1 w-full" defaultValue={p.title||p.filename} onBlur={e=>saveTitle(id,e.target.value)} /></td>
+                    <td className="py-2 pr-3 text-gray-600" title={media}>{(media||'').toString().slice(0,40)}…</td>
+                    <td className="py-2 pr-3">{date}</td>
+                    <td className="py-2 pr-3">{deleted ? <span className="bg-gray-100 rounded-full px-2 py-0.5">deleted</span> : <span className="bg-green-50 border border-green-200 rounded-full px-2 py-0.5">active</span>}</td>
+                    <td className="py-2 pr-3 flex gap-2">
+                      {!deleted ? <button className="bg-gray-100 px-2 py-1 rounded border" onClick={()=>del(id)}>Delete</button>
+                                : <button className="bg-[#052962] text-white px-2 py-1 rounded" onClick={()=>restore(id)}>Restore</button>}
+                      <button className="bg-gray-100 px-2 py-1 rounded border" onClick={()=>request('video', p.filename)}>Regen Video</button>
+                      <button className="bg-gray-100 px-2 py-1 rounded border" onClick={()=>request('short', p.filename)}>Regen Short</button>
+                    </td>
+                  </tr>)
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
 
-      <div className="card">
-        <h3 className="title" style={{fontSize:22,marginTop:0}}>Logs</h3>
-        <div className="small">{logs.map((l,i)=>(<div key={i}>{l}</div>))}</div>
+      <div className="mt-6 bg-white border border-gray-200 rounded-lg p-4">
+        <h3 className="font-semibold mb-2">Activity</h3>
+        <ul className="text-xs text-gray-700 space-y-1">
+          {logs.map((l,i)=>(<li key={i}>{l}</li>))}
+        </ul>
       </div>
     </main>
 
-    <footer className="footer">
-      © {new Date().getFullYear()} The Gargantuan · Contact: <a href="mailto:hellogargantuan69@gmail.com" style={{color:'#fff'}}>hellogargantuan69@gmail.com</a>
+    <footer className="fixed bottom-0 left-0 right-0 bg-[#052962] text-white text-sm text-center py-3 px-4">
+      © {new Date().getFullYear()} The Gargantuan · Contact: <a href="mailto:hellogargantuan69@gmail.com" className="underline">hellogargantuan69@gmail.com</a>
     </footer>
   </div>)
 }
