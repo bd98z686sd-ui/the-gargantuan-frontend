@@ -1,63 +1,52 @@
-import React, { useEffect, useState } from 'react'
+import React,{useEffect,useState}from'react'
 const API = import.meta.env.VITE_API_BASE || ''
 
 export default function Home(){
-  const [posts, setPosts] = useState(null)
-  const [error, setError] = useState(null)
+  const [posts,setPosts]=useState([])
+  const [dateStr] = useState(()=> new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'}))
 
   useEffect(()=>{
-    fetch(API+'/api/posts').then(r=> r.ok ? r.json() : Promise.reject(r.statusText))
-      .then(data=>{
-        // newest first (server should already do it; keep defensive)
-        data.sort((a,b)=> (new Date(b.date||0))-(new Date(a.date||0)))
-        setPosts(data)
-      })
-      .catch(e=> setError('posts: '+String(e)))
-  }, [])
+    fetch(API + '/api/posts')
+      .then(r=>r.json()).then(arr=>{
+        const sorted=[...(arr||[])].sort((a,b)=> (new Date(b.createdAt||0))-(new Date(a.createdAt||0)))
+        setPosts(sorted)
+      }).catch(console.error)
+  },[])
 
-  if(error) return <div className="container"><p className="meta">Error: {error}</p></div>
-  if(!posts) return <div className="container"><p className="meta">Loading…</p></div>
-
-  const [hero, ...rest] = posts
-
-  return (
-    <div className="container">
-      {hero && <Hero post={hero}/>}
-      {rest.length>0 && <>
-        <h2 className="sectionH">Recent</h2>
-        <div>
-          {rest.map((p,i)=> <Item key={i} post={p} />)}
-        </div>
-      </>}
-    </div>
-  )
-}
-
-function Hero({ post }){
-  const title = post.title || (post.filename?.split('/').pop())
-  const date = post.date ? new Date(post.date).toLocaleDateString(undefined, { day:'2-digit', month:'long', year:'numeric' }) : ''
-  return (
-    <article className="hero">
-      <div className="heroMedia">
-        {/* If you have poster thumbnails, you can swap this block to <video ...> */}
-        <div className="play" />
+  return(<div style={{paddingBottom:'60px'}}>
+    <header className="mast">
+      <div className="mwrap">
+        <div className="brand">The Gargantuan</div>
+        <div className="dateline">{dateStr} · Edited by The Gargantuan</div>
+        <div className="redbar"></div>
       </div>
-      <h1 className="title">{title}</h1>
-      <div className="meta">{date}</div>
-      <div className="controls">
-        <a className="btn" href={post.url} target="_blank" rel="noreferrer">Play</a>
-      </div>
-    </article>
-  )
-}
+      <nav className="nav">
+        <span>NEWS</span><span>CULTURE</span><span>SOUND</span><span>IDEAS</span><span>DISPATCHES</span>
+      </nav>
+    </header>
 
-function Item({ post }){
-  const title = post.title || (post.filename?.split('/').pop())
-  const date = post.date ? new Date(post.date).toLocaleDateString(undefined, { day:'2-digit', month:'long', year:'numeric' }) : ''
-  return (
-    <div className="item">
-      <div className="ititle">{title}</div>
-      <div className="meta">{date}</div>
-    </div>
-  )
+    <main className="container">
+      {posts.length===0 && <div className="small">No posts yet. Check back soon.</div>}
+      {posts.map((p,idx)=>(
+        <article key={idx} className="card">
+          <div className="playWrap">
+            <div className="playCircle"><div className="playTriangle"></div></div>
+            <div>
+              <h1 className="title" style={{margin:0}}>{p.title || p.filename}</h1>
+              <div className="meta">
+                {p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'}) : ''}
+              </div>
+              <div className="controls" style={{marginTop:8}}>
+                {p.url && <a className="btn" href={p.url} target="_blank" rel="noreferrer">Open</a>}
+              </div>
+            </div>
+          </div>
+        </article>
+      ))}
+    </main>
+
+    <footer className="footer">
+      © {new Date().getFullYear()} The Gargantuan · Contact: <a href="mailto:hellogargantuan69@gmail.com" style={{color:'#fff'}}>hellogargantuan69@gmail.com</a>
+    </footer>
+  </div>)
 }

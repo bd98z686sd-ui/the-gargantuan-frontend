@@ -1,6 +1,12 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
-import App from './pages/App.jsx'
+import Home from './pages/Home.jsx'
+import Admin from './pages/Admin.jsx'
 import './index.css'
 
-createRoot(document.getElementById('root')).render(<App/>)
+function Router(){
+  const path = window.location.pathname
+  if(path.startsWith('/admin')) return <Admin/>
+  return <Home/>
+}
+createRoot(document.getElementById('root')).render(<Router/>)
