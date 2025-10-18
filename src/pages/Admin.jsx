@@ -1,140 +1,115 @@
-import React,{useEffect,useMemo,useState} from 'react'
-import {useNavigate} from 'react-router-dom'
-import {useAdminToken} from '../useAdminToken.js'
-import Uploader from '../components/Uploader.jsx'
-import ShortsTab from '../components/ShortsTab.jsx'
+import React, { useEffect, useRef, useState } from 'react'
 
-const API_BASE=import.meta.env.VITE_API_BASE||'https://the-gargantuan-backend.onrender.com'
-
-function ToolbarTab({id,label,active,onClick}){
-  return <button onClick={()=>onClick(id)} className={`px-4 py-2 rounded-t ${active?'bg-white text-[#052962] border border-b-0':'bg-[#e9eef6] text-[#052962]/80'}`}>{label}</button>
-}
-
-function PostsPanel({token}){
-  const[posts,setPosts]=useState([])
-  const[editing,setEditing]=useState(null)
-  const[title,setTitle]=useState(''); const[tagline,setTagline]=useState('')
-  const[query,setQuery]=useState('')
-  const[checked,setChecked]=useState({})
-  const[status,setStatus]=useState('')
-
-  async function load(){ try{ const r=await fetch(`${API_BASE}/api/posts`); const j=await r.json(); setPosts(Array.isArray(j)?j:[]) }catch{ setPosts([]) } }
-  useEffect(()=>{load()},[])
-
-  const filtered=useMemo(()=>{
-    if(!query) return posts
-    const q=query.toLowerCase()
-    return posts.filter(p=>(p.title||p.filename).toLowerCase().includes(q))
-  },[posts,query])
-
-  function toggleAll(e){const m={}; if(e.target.checked) filtered.forEach(p=>m[p.filename]=true); setChecked(m)}
-  function toggleOne(fn){setChecked(s=>({...s,[fn]:!s[fn]}))}
-  const selected=Object.keys(checked).filter(k=>checked[k])
-
-  async function softDeleteMany(){ if(!selected.length) return
-    setStatus('Trashing...')
-    await fetch(`${API_BASE}/api/soft-delete`,{method:'POST',headers:{'Content-Type':'application/json','x-admin-token':token},body:JSON.stringify({filenames:selected})})
-    setChecked({}); setStatus(''); load()
-  }
-  async function restoreMany(){ if(!selected.length) return
-    setStatus('Restoring...')
-    await fetch(`${API_BASE}/api/restore`,{method:'POST',headers:{'Content-Type':'application/json','x-admin-token':token},body:JSON.stringify({filenames:selected})})
-    setChecked({}); setStatus(''); load()
-  }
-  async function saveMeta(){ if(!editing) return
-    setStatus('Saving...')
-    await fetch(`${API_BASE}/api/meta`,{method:'POST',headers:{'Content-Type':'application/json','x-admin-token':token},body:JSON.stringify({filename:editing,title,tagline})})
-    setEditing(null); setStatus(''); load()
-  }
-
-  async function makeVideo(fn){
-    try{
-      setStatus('Rendering video...')
-      const r = await fetch(`${API_BASE}/api/generate-video`, {
-        method:'POST', headers:{'Content-Type':'application/json','x-admin-token':token},
-        body: JSON.stringify({ filename: fn, title: '' })
-      })
-      const j = await r.json().catch(()=>({}))
-      if(!r.ok){ alert(`Video failed: ${j?.error||r.statusText}`) }
-      else { alert('Video created') }
-    }catch(e){
-      alert('Video failed')
-    }finally{
-      setStatus(''); load()
-    }
-  }
-
-  return (<div className="bg-white border border-[#dcdcdc] rounded-b p-4">
-    <div className="flex items-center justify-between gap-3 mb-3">
-      <input placeholder="Filter…" value={query} onChange={e=>setQuery(e.target.value)} className="border border-[#dcdcdc] rounded px-3 py-2 text-sm w-full"/>
-      <button onClick={load} className="px-3 py-2 text-sm underline text-[#052962]">Refresh</button>
-    </div>
-    {status && <p className="text-xs text-[#666] mb-2">{status}</p>}
-    <div className="flex items-center gap-3 mb-2">
-      <label className="text-sm"><input type="checkbox" onChange={toggleAll}/> Select all (filtered)</label>
-      <button onClick={softDeleteMany} className="px-3 py-1.5 bg-[#052962] text-white rounded text-sm disabled:opacity-50" disabled={!selected.length}>Trash</button>
-      <button onClick={restoreMany} className="px-3 py-1.5 bg-[#2b7a0b] text-white rounded text-sm disabled:opacity-50" disabled={!selected.length}>Restore</button>
-    </div>
-    <ul className="divide-y divide-[#eee]">
-      {filtered.map(p=>(<li key={p.filename} className="py-3 flex items-center justify-between gap-3">
-        <label className="flex items-center gap-3 min-w-0">
-          <input type="checkbox" checked={!!checked[p.filename]} onChange={()=>toggleOne(p.filename)}/>
-          <div className="min-w-0">
-            <p className="font-medium truncate">{p.title||p.filename.split('/').pop()}</p>
-            <p className="text-xs text-[#666]">{p.type} • {p.tagline||''}</p>
-          </div>
-        </label>
-        <div className="flex gap-3 items-center shrink-0">
-          <a href={p.absoluteUrl||p.url} target="_blank" className="text-sm underline text-[#052962]">Open</a>
-          {p.type==='audio' && <button onClick={()=>makeVideo(p.filename)} className="text-sm underline text-[#052962]">Make Video</button>}
-        </div>
-      </li>))}
-    </ul>
-    {editing&&(<div className="border-t border-[#ccc] pt-3 mt-3">
-      <h4 className="font-sans font-semibold mb-2">Edit metadata</h4>
-      <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Title" className="block border border-[#ccc] rounded px-2 py-1 mb-2 w-full"/>
-      <input value={tagline} onChange={e=>setTagline(e.target.value)} placeholder="Tagline" className="block border border-[#ccc] rounded px-2 py-1 mb-2 w-full"/>
-      <button onClick={saveMeta} className="px-4 py-2 bg-[#052962] text-white rounded text-sm">Save</button>
-    </div>)}
-  </div>)
-}
+const API = import.meta.env.VITE_API_BASE || ''
 
 export default function Admin(){
-  const{token,setToken}=useAdminToken()
-  const[view,setView]=useState('upload')
-  const[show,setShow]=useState(!!token)
-  const nav=useNavigate()
+  const [token, setToken] = useState(localStorage.getItem('garg_token') || '')
+  const [filename, setFilename] = useState('')
+  const [title, setTitle] = useState('')
+  const [tagline, setTagline] = useState('')
+  const [uploadPct, setUploadPct] = useState(0)
+  const [busy, setBusy] = useState(false)
+  const inputRef = useRef(null)
 
-  return (<div className="min-h-screen bg-[#f6f6f6] text-[#121212]">
-    <header className="bg-[#052962] text-white">
-      <div className="max-w-6xl mx-auto px-4 py-4 border-b-4 border-[#c70000]">
-        <h1 className="font-serif italic font-extrabold text-3xl">The Gargantuan — Admin</h1>
-      </div>
-    </header>
+  useEffect(()=>{ localStorage.setItem('garg_token', token) }, [token])
 
-    <main className="max-w-6xl mx-auto px-4 py-6">
-      {!show?(
-        <div className="bg-white border border-[#dcdcdc] rounded p-4">
-          <h3 className="font-sans font-semibold mb-2">Enter admin token</h3>
-          <div className="flex gap-3">
-            <input type="password" value={token} onChange={e=>setToken(e.target.value)} placeholder="Admin token" className="flex-1 border border-[#dcdcdc] rounded px-3 py-2 text-sm"/>
-            <button className="px-4 py-2 bg-[#052962] text-white rounded text-sm font-semibold" onClick={()=>setShow(true)}>Continue</button>
-          </div>
-          <button className="mt-3 text-sm underline text-[#052962]" onClick={()=>nav('/')}>← Back to site</button>
+  const onDrop = e => {
+    e.preventDefault()
+    const f = e.dataTransfer.files?.[0]
+    if (f) doUpload(f)
+  }
+
+  async function doUpload(file){
+    setBusy(true); setUploadPct(2)
+    try{
+      const form = new FormData()
+      form.append('audio', file)
+      const res = await fetch(API+'/api/upload', {
+        method:'POST',
+        headers: { 'x-admin-token': token },
+        body: form,
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'upload failed')
+      setFilename(json.key || json.filename)
+      setUploadPct(100)
+    }catch(e){ alert(e.message) }
+    setBusy(false)
+  }
+
+  async function generateSpectral(){
+    if (!filename) return alert('Upload first')
+    setBusy(true)
+    try{
+      const res = await fetch(API+'/api/generate-video', {
+        method:'POST',
+        headers: {
+          'Content-Type':'application/json',
+          'x-admin-token': token
+        },
+        body: JSON.stringify({ filename, title })
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error||'failed')
+      alert('Spectral job queued: '+json.id)
+    }catch(e){ alert(e.message) }
+    setBusy(false)
+  }
+
+  async function generateShorts(){
+    if (!filename) return alert('Upload first')
+    setBusy(true)
+    try{
+      const res = await fetch(API+'/api/shorts/request', {
+        method:'POST',
+        headers: {
+          'Content-Type':'application/json',
+          'x-admin-token': token
+        },
+        body: JSON.stringify({ filename, title })
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error||'failed')
+      alert('Shorts job queued: '+json.id)
+    }catch(e){ alert(e.message) }
+    setBusy(false)
+  }
+
+  return (
+    <div className="container admin-wrap">
+      <h2 style={{margin:'8px 0 16px', fontFamily:'Merriweather, Georgia, serif'}}>Admin</h2>
+      <div className="grid">
+        <div>
+          <label>Admin Token</label>
+          <input className="input" type="password" value={token} onChange={e=>setToken(e.target.value)} placeholder="x-admin-token" />
         </div>
-      ):(
-        <>
-          <div className="flex gap-1">
-            <ToolbarTab id="upload" label="Upload" active={view==='upload'} onClick={setView}/>
-            <ToolbarTab id="manage" label="Manage" active={view==='manage'} onClick={setView}/>
-            <ToolbarTab id="shorts" label="Shorts" active={view==='shorts'} onClick={setView}/>
-          </div>
-          {view==='upload' && <div className="bg-white border border-[#dcdcdc] rounded-b p-4"><Uploader token={token} onUploaded={()=>{}}/></div>}
-          {view==='manage' && <PostsPanel token={token}/>}
-          {view==='shorts' && <div className="bg-white border border-[#dcdcdc] rounded-b p-4"><ShortsTab token={token}/></div>}
-          <div className="mt-6"><button className="text-sm underline text-[#052962]" onClick={()=>nav('/')}>← Back to site</button></div>
-        </>
-      )}
-    </main>
-  </div>)
+        <div>
+          <label>Title</label>
+          <input className="input" value={title} onChange={e=>setTitle(e.target.value)} placeholder="Optional title…" />
+        </div>
+      </div>
+
+      <div style={{marginTop:16}}>
+        <label>Tagline (shown on homepage list)</label>
+        <input className="input" value={tagline} onChange={e=>setTagline(e.target.value)} placeholder="Optional tagline…" />
+      </div>
+
+      <div style={{marginTop:16, padding:16, border:'2px dashed #c7d2fe', borderRadius:8}}
+           onDragOver={e=>e.preventDefault()} onDrop={onDrop}>
+        <b>Drag & drop</b> your MP3 here, or <button className="btn" type="button" onClick={()=>inputRef.current?.click()}>Choose File</button>
+        <input type="file" accept="audio/*" hidden ref={inputRef} onChange={e=> e.target.files?.[0] && doUpload(e.target.files[0])} />
+        <div className="progress" style={{marginTop:12}}><span style={{width: uploadPct+'%'}} /></div>
+        {filename && <div style={{marginTop:10}}><span className="badge">uploaded</span> {filename}</div>}
+      </div>
+
+      <div className="controls" style={{marginTop:16}}>
+        <button className="btn" onClick={generateSpectral} disabled={busy}>Create Spectral Video</button>
+        <button className="btn" onClick={generateShorts} disabled={busy}>Create Short</button>
+      </div>
+
+      <hr className="sep" />
+
+      <p className="notice" style={{marginTop:10}}>Latest public posts appear on the homepage automatically (videos & audios from R2). The admin link is not shown on the homepage; access this page directly via <code>#/admin</code>.</p>
+    </div>
+  )
 }
