@@ -1,16 +1,15 @@
-# React + Vite
+# The Gargantuan — Frontend (Public + Private Admin)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+- Public homepage at `/` (no uploader, just posts)
+- Private admin tools at `/admin` (uploader with token)
+- No visible link to `/admin` on the site; you must visit the URL directly
 
-Currently, two official plugins are available:
+## Config
+- Env var in Vercel: `VITE_API_BASE=https://YOUR-BACKEND.onrender.com`
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Admin flow
+1. Go to `/admin`
+2. Enter your admin token (same as backend `ADMIN_TOKEN`, stored locally)
+3. Drag-and-drop MP3 → Upload progress → Generate video → Success snackbar
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Backend must be deployed with the auth middleware and `ADMIN_TOKEN` set.
