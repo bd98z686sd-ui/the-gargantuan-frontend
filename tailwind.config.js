@@ -9,9 +9,9 @@ export default {
         guardianText: "#121212"
       },
       fontFamily: {
-        serif: ["Playfair Display", "serif"],
-        sans: ["Inter", "sans-serif"],
-        mono: ["Roboto Mono", "monospace"]
+        serif: ["Playfair Display", "Georgia", "serif"],
+        headline: ["Archivo Black", "Impact", "sans-serif"],
+        sans: ["Inter", "Helvetica", "Arial", "sans-serif"]
       }
     },
   },
