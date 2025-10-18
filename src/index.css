@@ -1,49 +1,27 @@
 :root{
-  --blue:#052962;
-  --red:#c70000;
+  --g-blue:#052962;
+  --g-red:#c70000;
+  --ink:#121212;
   --paper:#f6f6f6;
-  --ink:#111;
-  --muted:#6b6b6b;
-  --card:#fff;
-  --border:#e7e7e7;
 }
-*{box-sizing:border-box}
-html,body,#root{height:100%}
-body.bg{margin:0;background:var(--paper);color:var(--ink);font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
-
-/* Masthead */
-.mast{background:var(--blue);color:#fff;position:sticky;top:0;z-index:10}
-.mwrap{max-width:980px;margin:0 auto;padding:18px 16px 12px 16px}
-.brand{font-family:'Playfair Display',serif;font-weight:900;font-style:italic;font-size:48px;letter-spacing:-0.5px}
-.dateline{margin-top:10px;opacity:.95;font-size:15px}
-.redbar{height:5px;background:var(--red);margin:14px 0 0 0}
-
-/* Nav row */
-.nav{display:flex;gap:22px;flex-wrap:wrap;padding:12px 16px;color:#e7ecfa;font-weight:700;letter-spacing:.6px;text-transform:uppercase}
-.nav a{color:#e7ecfa;text-decoration:none}
-.nav a:hover{opacity:.85}
-
-/* Page container */
-.container{max-width:980px;margin:12px auto 24px auto;padding:0 16px}
-
-/* Card styles */
-.hero{background:var(--card);border:1px solid var(--border);border-radius:10px; padding:16px}
-.heroMedia{display:flex;align-items:center;justify-content:center;min-height:320px;border-radius:8px;background:#f0f0f0;position:relative}
-.play{width:94px;height:94px;border-radius:50%;background:#bdbdbd;display:flex;align-items:center;justify-content:center}
-.play:after{content:'';display:block;border-left:22px solid #fff;border-top:14px solid transparent;border-bottom:14px solid transparent;margin-left:6px}
-
-.title{font-family:'Playfair Display',serif;font-weight:800;font-size:36px;line-height:1.16;margin:18px 0 8px 0}
-.meta{color:var(--muted);font-size:15px}
-
-.sectionH{font-weight:800;font-size:28px;margin:22px 0 10px 0}
-.item{padding:14px 0;border-bottom:1px solid var(--border)}
-.item .ititle{font-family:'Playfair Display',serif;font-weight:800;font-size:22px}
-.footer{background:var(--blue);color:#dfe7ff;margin-top:30px}
-.fwrap{max-width:980px;margin:0 auto;padding:18px 16px;font-size:15px}
-a.btn{display:inline-block;margin-top:10px;background:var(--blue);color:#fff;padding:8px 12px;border-radius:4px;text-decoration:none;font-weight:700}
-.controls{margin-top:8px}
-@media (max-width:720px){
-  .brand{font-size:44px}
-  .heroMedia{min-height:220px}
-  .title{font-size:32px}
-}
+html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;height:100%;}
+.font-serif{font-family:"Playfair Display",serif;font-weight:800;font-style:italic;}
+.mast{background:var(--g-blue);color:#fff;position:sticky;top:0;z-index:10;}
+.mwrap{max-width:980px;margin:0 auto;padding:18px 16px 12px;}
+.brand{font-family:"Playfair Display",serif;font-style:italic;font-weight:900;font-size:48px;}
+.dateline{margin-top:8px;font-size:15px;opacity:.95;}
+.redbar{height:5px;background:var(--g-red);margin-top:12px;}
+.nav{display:flex;gap:22px;flex-wrap:wrap;padding:12px 16px;color:#e7ecfa;font-weight:700;text-transform:uppercase;letter-spacing:.6px;}
+.nav span:hover{text-decoration:underline;text-decoration-color:var(--g-red);}
+.container{max-width:980px;margin:0 auto;padding:16px;}
+.hero{background:#fff;border:1px solid #ddd;border-radius:10px;padding:20px;margin-bottom:24px;}
+.playCircle{width:100px;height:100px;border-radius:50%;background:#e0e0e0;margin:30px auto;display:flex;align-items:center;justify-content:center;}
+.playTriangle{width:0;height:0;border-left:26px solid #666;border-top:16px solid transparent;border-bottom:16px solid transparent;}
+.title{font-family:"Playfair Display",serif;font-weight:800;font-size:36px;line-height:1.15;margin:12px 0;}
+.meta{color:#666;font-size:15px;}
+.sectionH{font-weight:800;font-size:26px;margin:24px 0 10px;}
+.item{padding:12px 0;border-bottom:1px solid #ddd;}
+.footer{position:fixed;bottom:0;left:0;right:0;background:var(--g-blue);color:#dfe7ff;font-size:15px;padding:12px 20px;text-align:center;z-index:20;}
+.btn{display:inline-block;background:var(--g-blue);color:#fff;padding:8px 12px;border-radius:4px;text-decoration:none;font-weight:700;}
+.controls{margin-top:10px;}
+@media(max-width:720px){.brand{font-size:40px}.title{font-size:30px}}
