@@ -1,13 +1,17 @@
 module.exports = {
-  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+  content: ["./index.html", "./src/**/*.{js,jsx}"],
   theme: {
     extend: {
-      fontFamily: {
-        serif: ["Playfair Display", "Georgia", "serif"],
-        headline: ["Archivo Black", "Impact", "sans-serif"],
-        sans: ["Inter", "Helvetica", "Arial", "sans-serif"],
+      colors: {
+        guardianBlue: "#052962",
+        guardianRed: "#C70000",
+        offWhite: "#f6f6f6"
       },
-    },
+      fontFamily: {
+        serif: ["Playfair Display", "serif"],
+        sans: ["Inter", "sans-serif"]
+      }
+    }
   },
-  plugins: [],
-}
+  plugins: []
+};
