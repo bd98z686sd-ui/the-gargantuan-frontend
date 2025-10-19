@@ -1,17 +1,16 @@
-# The Gargantuan — Frontend (Hash Routing)
+# The Gargantuan Frontend (v1.1.0)
 
-Guardian-style front page + Admin at **/#/admin** (hash router, no server rewrites needed).
+Guardian-inspired daily audio blog with AI video and hybrid backend.
 
-## Env
-- `VITE_API_BASE` — your backend origin, e.g. `https://the-gargantuan-backend.onrender.com`
+## Features
+- Dynamic newspaper-style post grid
+- Integrated admin panel (add/edit/delete posts)
+- Upload audio, text, or image posts
+- Auto-generates spectral videos with captions
+- Hybrid Render + local worker mode
+- Fixed Guardian-style masthead and footer
 
-## Dev
-```
-npm i
+## Local Setup
+```bash
+npm install
 npm run dev
-```
-
-## Build
-```
-npm run build
-```
