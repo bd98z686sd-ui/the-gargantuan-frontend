@@ -1,10 +1,17 @@
-Guardian-style exact layout
-- Blue masthead with white italic brand, dateline, red underline
-- Category row (non-clicking placeholders)
-- Hero card for newest post with big play button
-- "Recent" list (simple items)
-- Footer with contact
-- Admin is at /#/admin (not linked on homepage)
+# The Gargantuan — Frontend (Hash Routing)
 
-Env:
-VITE_API_BASE = https://the-gargantuan-backend.onrender.com
+Guardian-style front page + Admin at **/#/admin** (hash router, no server rewrites needed).
+
+## Env
+- `VITE_API_BASE` — your backend origin, e.g. `https://the-gargantuan-backend.onrender.com`
+
+## Dev
+```
+npm i
+npm run dev
+```
+
+## Build
+```
+npm run build
+```
