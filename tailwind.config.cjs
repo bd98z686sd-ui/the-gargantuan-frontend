@@ -8,10 +8,7 @@ module.exports = {
         sans: ["Inter", "system-ui", "sans-serif"]
       },
       colors: {
-        guardian: {
-          blue: "#052962",
-          red: "#c70000"
-        }
+        guardian: { blue: "#052962", red: "#c70000" }
       }
     }
   },

@@ -6,5 +6,5 @@ export default function Masthead() {
         <div className="h-1 mt-3 w-24 bg-guardian-red"></div>
       </div>
     </header>
-  );
+  )
 }

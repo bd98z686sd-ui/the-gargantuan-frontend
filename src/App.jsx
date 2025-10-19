@@ -4,10 +4,11 @@ import Footer from './components/Footer'
 import PostCard from './components/PostCard'
 import Admin from './components/Admin'
 import { fetchPosts } from './api'
+import './index.css'
 
 function useHashRoute() {
   const [hash, setHash] = useState(window.location.hash || '#/')
-  useEffect(() => {
+  useEffect(()=>{
     const onHash = () => setHash(window.location.hash || '#/')
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
@@ -19,19 +20,10 @@ export default function App() {
   const route = useHashRoute()
   const [posts, setPosts] = useState([])
 
-  useEffect(() => {
+  useEffect(()=>{
     (async () => {
       const data = await fetchPosts()
-      if (!data?.length) {
-        try {
-          const demo = await fetch('/README-assets/dummy_posts.json').then(r=>r.json())
-          setPosts(demo)
-        } catch (e) {
-          setPosts([])
-        }
-      } else {
-        setPosts(data.sort((a,b)=> new Date(b.date) - new Date(a.date)))
-      }
+      setPosts((data||[]).sort((a,b)=> new Date(b.date) - new Date(a.date)))
     })()
   }, [])
 

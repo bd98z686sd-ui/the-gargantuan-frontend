@@ -5,13 +5,13 @@ export async function fetchPosts() {
     const r = await fetch(`${API_BASE}/api/posts`);
     if (!r.ok) return [];
     return await r.json();
-  } catch (e) {
-    return [];
-  }
+  } catch (e) { return []; }
 }
 
-export async function adminFetch(path, opts = {}) {
-  const r = await fetch(`${API_BASE}${path}`, opts);
+export async function authFetch(path, opts = {}) {
+  const token = localStorage.getItem('ADMIN_TOKEN') || '';
+  const headers = { ...(opts.headers || {}), 'x-admin-token': token };
+  const r = await fetch(`${API_BASE}${path}`, { ...opts, headers });
   if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
