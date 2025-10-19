@@ -1,15 +1,27 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Headline balance & wrapping for mobile */
-h1, h2, .headline {
-  text-wrap: balance;
-  hyphens: auto;
-  overflow-wrap: anywhere;
+:root {
+  --g-blue: #052962;
+  --g-red: #c70000;
 }
 
-/* sticky footer spacer */
-:root { --footer-h: 76px; }
-body { padding-bottom: var(--footer-h); }
+html, body, #root {
+  height: 100%;
+}
+
+.masthead-title {
+  font-family: 'Playfair Display', serif;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+}
+
+.wrap-balance {
+  text-wrap: balance;
+}
+
+.sticky-footer {
+  position: sticky;
+  bottom: 0;
+}
