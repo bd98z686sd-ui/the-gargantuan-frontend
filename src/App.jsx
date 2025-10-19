@@ -1,155 +1,302 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { clsx } from 'clsx'
-import { useHashRoute } from './router'
-const API = import.meta.env.VITE_API_BASE
 
-function Masthead() {
-  return (
-    <header className="sticky top-0 z-40 bg-guardianBlue text-white border-b-4 border-guardianRed">
-      <div className="mx-auto max-w-5xl px-4 py-4">
-        <div className="font-display text-3xl md:text-5xl leading-none">The Gargantuan</div>
-        <div className="text-sm mt-2 opacity-90">{
-          new Date().toLocaleDateString(undefined, { day:'2-digit', month:'long', year:'numeric'})
-        } · Edited by The Gargantuan</div>
-      </div>
-      <nav className="mx-auto max-w-5xl px-4">
-        <div className="h-1 bg-guardianRed w-full" />
-      </nav>
-    </header>
-  )
+const API_BASE = import.meta.env.VITE_API_BASE || ''
+
+// Hash router: '#/' home, '#/admin'
+function useHashPath(){
+  const get = () => (window.location.hash || '#/').replace(/^#/, '') || '/'
+  const [path, setPath] = useState(get())
+  useEffect(()=>{
+    const onHash = () => setPath(get())
+    window.addEventListener('hashchange', onHash)
+    if(!window.location.hash) window.location.hash = '#/'
+    return ()=>window.removeEventListener('hashchange', onHash)
+  },[])
+  const nav = (to) => { window.location.hash = to.startsWith('#') ? to : ('#'+to.replace(/^#/,'')) }
+  return [path, nav]
 }
 
-function Footer() {
+function Masthead(){
   return (
-    <footer className="fixed bottom-0 left-0 right-0 bg-guardianBlue text-white">
-      <div className="mx-auto max-w-5xl px-4 py-4 flex flex-col md:flex-row gap-2 md:gap-8 text-sm">
-        <div>© {new Date().getFullYear()} The Gargantuan</div>
-        <div>Contact: <a className="underline" href="mailto:hellogargantuan69@gmail.com">hellogargantuan69@gmail.com</a></div>
-      </div>
-    </footer>
-  )
-}
-
-function Tag({ children }) {
-  return <span className="inline-flex items-center rounded-full bg-neutral-200/80 text-neutral-800 text-xs px-3 py-1">{children}</span>
-}
-
-function Media({ item }) {
-  const src = item.videoUrl || item.audioUrl
-  if (!src) return null
-  const isVideo = /\.mp4(\?|$)/i.test(src)
-  return (
-    <div className="w-full">
-      {isVideo ? (
-        <video className="w-full rounded border" src={src} controls preload="none" />
-      ) : (
-        <audio className="w-full" src={src} controls preload="none" />
-      )}
+    <div className="mast">
+      <div className="brand">The Gargantuan</div>
+      <div className="tagline">Daily audio, spectral video & shorts — latest first</div>
     </div>
   )
 }
 
-function PostCard({ item, size='m' }) {
-  const font = "font-display"
-  const titleSize = size==='xl' ? 'text-[clamp(28px,7vw,56px)]' :
-                    size==='l' ? 'text-[clamp(24px,5.2vw,44px)]' :
-                    size==='s' ? 'text-[clamp(18px,3.6vw,28px)]' :
-                                 'text-[clamp(20px,4.2vw,34px)]'
+function Footer(){
   return (
-    <article className={clsx("bg-white shadow-card border rounded-lg p-4 flex flex-col gap-3", size==='xl' && 'md:col-span-2')}>
-      <div className="flex items-center gap-3">
-        <div className="text-xs text-neutral-600">{new Date(item.date || item.createdAt || Date.now()).toLocaleDateString(undefined,{ day:'2-digit', month:'short', year:'numeric'})}</div>
-        <Tag>Audio blog</Tag>
+    <div className="footer">
+      <div className="container">
+        <div>© 2025 The Gargantuan</div>
+        <div>Contact: <a href="mailto:hellogargantuan69@gmail.com">hellogargantuan69@gmail.com</a></div>
       </div>
-      <h2 className={clsx("headline leading-tight", font, titleSize)}>{item.title || item.filename}</h2>
-      <Media item={item} />
+    </div>
+  )
+}
+
+function Card({post, className}){
+  const d = new Date(post.createdAt||Date.now())
+  const date = d.toLocaleDateString(undefined,{year:'numeric', month:'short', day:'numeric'})
+  return (
+    <article className={`card ${className||''}`}>
+      <div className="meta">{date} <span className="badge">{post.tagline || 'Audio blog'}</span></div>
+      <h2>{post.title || post.filename}</h2>
+      {post.videoUrl ? (
+        <video controls preload="metadata" src={post.videoUrl}></video>
+      ) : post.audioUrl ? (
+        <audio controls preload="metadata" src={post.audioUrl}></audio>
+      ) : null}
     </article>
   )
 }
 
-function usePosts() {
-  const [posts,setPosts] = useState([])
-  const [loading,setLoading] = useState(true)
-  useEffect(() => {
-    async function go() {
-      try {
-        const res = await fetch(`${API}/api/posts`)
-        const data = await res.json()
-        setPosts((data?.posts || data || []).sort((a,b)=>new Date(b.date||b.createdAt)-new Date(a.date||a.createdAt)))
-      } catch(e){ console.error(e) }
-      setLoading(false)
-    }
-    go()
-  },[])
-  return { posts, loading }
+function layout(posts){
+  if(posts.length===0) return []
+  const arr = []
+  posts.forEach((p, i)=>{
+    if(i===0) arr.push({ post:p, span:'span-12' })
+    else if(i===1) arr.push({ post:p, span:'span-6'})
+    else if(i===2) arr.push({ post:p, span:'span-6 right'})
+    else arr.push({ post:p, span:'span-4' })
+  })
+  return arr
 }
 
-function Grid({ posts }) {
-  // Simple newspaper-like layout: first is XL, next two L, rest M/S responsive
-  const items = posts
+function Home(){
+  const [posts, setPosts] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(()=>{
+    let cancelled = false
+    async function run(){
+      try{
+        const r = await fetch(`${API_BASE}/api/posts`)
+        const list = r.ok ? await r.json() : []
+        if(!cancelled){
+          setPosts(Array.isArray(list) && list.length ? list : demoPosts())
+        }
+      }catch{
+        if(!cancelled) setPosts(demoPosts())
+      }finally{
+        if(!cancelled) setLoading(false)
+      }
+    }
+    run()
+    return ()=>{ cancelled = true }
+  },[])
+
+  const laid = useMemo(()=>layout(posts), [posts])
+
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-      {items.slice(0,1).map(p => <PostCard key={p.id||p.filename+'xl'} item={p} size="xl" />)}
-      {items.slice(1,3).map(p => <PostCard key={p.id||p.filename+'l'} item={p} size="l" />)}
-      {items.slice(3).map((p,i) => <PostCard key={p.id||p.filename+i} item={p} size={ i%3===0 ? 'm' : 's'} />)}
+    <div className="container" style={{paddingBottom: '70px'}}>
+      <div className="grid">
+        {laid.map(({post, span}, idx)=>(
+          <Card key={post.id||post.filename||idx} post={post} className={span} />
+        ))}
+      </div>
     </div>
   )
 }
 
-function Admin() {
-  const [token,setToken] = useState('')
-  const [file,setFile] = useState(null)
-  const [progress,setProgress] = useState(0)
-  const [busy,setBusy] = useState(false)
+function demoPosts(){
+  const base = 'https://files.catbox.moe/1t3t2y.mp4'
+  const now = Date.now()
+  return [
+    { id:'d1', title:'A noisy morning; a quiet resolve', videoUrl:base, createdAt: now },
+    { id:'d2', title:'On headlines, harmony, and hum', audioUrl:'', createdAt: now-1e6 },
+    { id:'d3', title:'Mustard skies over a blue city', audioUrl:'', createdAt: now-2e6 },
+    { id:'d4', title:'Reading the news to a beat', audioUrl:'', createdAt: now-3e6 },
+    { id:'d5', title:'Micro-rants & macro-grooves', audioUrl:'', createdAt: now-4e6 },
+    { id:'d6', title:'A brief intermission (looping)', audioUrl:'', createdAt: now-5e6 },
+  ]
+}
 
-  const upload = async () => {
-    if (!file) return
+/* ---------------- ADMIN ---------------- */
+function Admin({ nav }){
+  const [token, setToken] = useState(localStorage.getItem('tg_admin_token')||'')
+  const [file, setFile] = useState(null)
+  const [progress, setProgress] = useState(0)
+  const [busy, setBusy] = useState(false)
+  const [list, setList] = useState([])
+  const [query, setQuery] = useState('')
+  const [filter, setFilter] = useState('active')
+
+  useEffect(()=>{ refresh() }, [filter, query])
+
+  function onDrop(e){
+    e.preventDefault()
+    if(e.dataTransfer.files && e.dataTransfer.files[0]){
+      setFile(e.dataTransfer.files[0])
+    }
+  }
+
+  function saveToken(){
+    localStorage.setItem('tg_admin_token', token)
+    alert('Token saved')
+  }
+
+  async function refresh(){
+    let url = `${API_BASE}/api/posts`
+    const qs = new URLSearchParams()
+    if(filter==='deleted') qs.set('deleted','1')
+    if(filter==='all') qs.set('includeDeleted','1')
+    if(query) qs.set('q',query)
+    if([...qs.keys()].length) url += `?${qs}`
+    const r = await fetch(url)
+    const data = r.ok ? await r.json() : []
+    setList(data)
+  }
+
+  async function upload(){
+    if(!file) return
     setBusy(true); setProgress(0)
-    const form = new FormData()
-    form.append('audio', file)
-    const res = await fetch(`${API}/api/upload`, { method:'POST', headers: { 'x-admin-token': token }, body: form })
-    const data = await res.json().catch(()=>({}))
-    setBusy(false)
-    alert(JSON.stringify(data,null,2))
+    try{
+      const fd = new FormData()
+      fd.append('audio', file)
+      const r = await fetch(`${API_BASE}/api/upload`, {
+        method: 'POST',
+        headers: { 'x-admin-token': token },
+        body: fd,
+      })
+      if(!r.ok) throw new Error(await r.text())
+      await r.json()
+      setFile(null)
+      await refresh()
+    }catch(e){ alert('Upload failed: '+e.message) }
+    finally{ setBusy(false); setProgress(0) }
+  }
+
+  async function gen(kind, filename){
+    const url = `${API_BASE}/api/generate-${kind}`
+    const r = await fetch(url, {
+      method:'POST',
+      headers:{
+        'x-admin-token': token,
+        'Content-Type':'application/json'
+      },
+      body: JSON.stringify({ filename })
+    })
+    if(!r.ok){
+      const t = await r.text()
+      alert(kind+' failed: '+t)
+    } else {
+      await refresh()
+    }
+  }
+
+  async function rename(id){
+    const title = prompt('New title:')
+    if(!title) return
+    const r = await fetch(`${API_BASE}/api/posts/${encodeURIComponent(id)}`, {
+      method:'PATCH',
+      headers:{ 'x-admin-token': token, 'Content-Type':'application/json' },
+      body: JSON.stringify({ title })
+    })
+    if(!r.ok){
+      await fetch(`${API_BASE}/api/posts/${encodeURIComponent(id)}/title`, {
+        method:'POST', headers:{ 'x-admin-token': token, 'Content-Type':'application/json' }, body: JSON.stringify({ title })
+      })
+    }
+    await refresh()
+  }
+
+  async function del(id){
+    const r = await fetch(`${API_BASE}/api/posts/${encodeURIComponent(id)}`, {
+      method:'DELETE', headers:{ 'x-admin-token': token }
+    })
+    if(!r.ok){
+      await fetch(`${API_BASE}/api/posts/${encodeURIComponent(id)}/delete`, {
+        method:'POST', headers:{ 'x-admin-token': token }
+      })
+    }
+    await refresh()
+  }
+  async function restore(id){
+    await fetch(`${API_BASE}/api/posts/${encodeURIComponent(id)}/restore`, {
+      method:'POST', headers:{ 'x-admin-token': token }
+    })
+    await refresh()
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      <h1 className="font-display text-3xl mb-4">Admin</h1>
-      <label className="block mb-2 text-sm font-medium">Admin Token</label>
-      <input className="w-full border rounded px-3 py-2 mb-4" type="password" value={token} onChange={e=>setToken(e.target.value)} placeholder="Enter admin token" />
-      <div className="border-dashed border-2 rounded-lg p-6 text-center">
-        <input type="file" accept="audio/*" onChange={e=>setFile(e.target.files?.[0])} />
-        <div className="mt-4">
-          <button disabled={!file||busy} onClick={upload} className="bg-guardianBlue text-white px-4 py-2 rounded disabled:opacity-50">Upload audio</button>
+    <div className="admin" style={{paddingBottom:'80px'}} onDragOver={(e)=>e.preventDefault()} onDrop={onDrop}>
+      <div className="section">
+        <h3>Auth</h3>
+        <div className="body row">
+          <input type="text" placeholder="Admin token" value={token} onChange={e=>setToken(e.target.value)} />
+          <button onClick={saveToken}>Save</button>
+          <a href="#/"><button className="secondary">← Back to Home</button></a>
         </div>
       </div>
-      {progress>0 && <div className="mt-4 h-2 bg-neutral-200 rounded"><div className="h-full bg-guardianRed rounded" style={{width:`${progress}%`}}/></div>}
-      <div className="mt-8">
-        <a href="/#/" className="underline">← Back to site</a>
+
+      <div className="section">
+        <h3>Upload Audio</h3>
+        <div className="body">
+          <div className="row">
+            <input type="file" accept="audio/*" onChange={e=>setFile(e.target.files?.[0]||null)} />
+            <button onClick={upload} disabled={!file || busy}>Upload</button>
+            {file && <span className="badge">{file.name}</span>}
+          </div>
+          <div className="progress" style={{marginTop:10}}><span style={{width: `${progress}%`}}></span></div>
+          <div style={{fontSize:12, color:'#666', marginTop:8}}>Drag & drop supported</div>
+        </div>
+      </div>
+
+      <div className="section">
+        <h3>Posts</h3>
+        <div className="body">
+          <div className="row" style={{marginBottom:10}}>
+            <input type="search" placeholder="Search..." value={query} onChange={e=>setQuery(e.target.value)} />
+            <button className={filter==='active'?'':'secondary'} onClick={()=>setFilter('active')}>Active</button>
+            <button className={filter==='deleted'?'':'secondary'} onClick={()=>setFilter('deleted')}>Deleted</button>
+            <button className={filter==='all'?'':'secondary'} onClick={()=>setFilter('all')}>All</button>
+          </div>
+          <table className="table">
+            <thead>
+              <tr><th>Title</th><th className="hide-mobile">Filename</th><th>Media</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+              {list.map(p=>(
+                <tr key={p.id||p.filename}>
+                  <td>{p.title||p.filename}</td>
+                  <td className="hide-mobile" title={p.filename}>{p.filename}</td>
+                  <td>
+                    {p.videoUrl ? <span className="badge">video</span> : p.audioUrl ? <span className="badge">audio</span> : '-'}
+                    {p.shortUrl ? <span className="badge">short</span> : null}
+                  </td>
+                  <td>
+                    <button onClick={()=>gen('video', p.id||p.filename)}>Create Video</button>{' '}
+                    <button className="secondary" onClick={()=>gen('short', p.id||p.filename)}>Create Short</button>{' '}
+                    <button className="yellow" onClick={()=>rename(p.id||p.filename)}>Rename</button>{' '}
+                    {p.deleted ? (
+                      <button onClick={()=>restore(p.id||p.filename)}>Restore</button>
+                    ) : (
+                      <button className="red" onClick={()=>del(p.id||p.filename)}>Delete</button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )
 }
 
-function App() {
-  const { get, subscribe } = useHashRoute()
-  const [route,setRoute] = useState(get())
-  useEffect(()=>subscribe(setRoute),[])
-  const { posts, loading } = usePosts()
-
+function App(){
+  const [path] = useHashPath()
+  useEffect(()=>{
+    document.title = (path === '/admin') ? 'Admin · The Gargantuan' : 'The Gargantuan'
+  },[path])
   return (
-    <div className="min-h-screen font-sans">
+    <>
       <Masthead />
-      {route.startsWith('admin') ? (
-        <Admin />
-      ) : (
-        <>
-          {loading ? <div className="mx-auto max-w-5xl px-4 py-10">Loading…</div> : <Grid posts={posts} />}
-        </>
-      )}
+      {path === '/admin' ? <Admin /> : <Home />}
       <Footer />
-    </div>
+    </>
   )
 }
 

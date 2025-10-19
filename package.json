@@ -1,6 +1,6 @@
 {
   "name": "the-gargantuan-frontend",
-  "version": "0.1.0",
+  "version": "0.0.6",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,12 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "clsx": "^2.1.0"
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "autoprefixer": "^10.4.20",
-    "postcss": "^8.4.47",
-    "tailwindcss": "^3.4.13",
-    "vite": "^5.4.9"
+    "vite": "^5.4.8"
   }
 }
