@@ -17,17 +17,20 @@ function useHashRoute() {
   return hash.replace(/^#/, '') || '/'
 }
 
+
 function Nav({ route }){
+  const hasToken = typeof localStorage !== 'undefined' && !!localStorage.getItem('ADMIN_TOKEN')
   return (
     <nav className="bg-white border-b border-gray-200">
       <div className="mx-auto max-w-5xl px-4 py-3 flex gap-4 text-sm">
         <a href="#/" className={route==='/'?'font-bold underline':''}>Home</a>
-        <a href="#/admin" className={route==='/admin'?'font-bold underline':''}>Admin</a>
+        {hasToken && <a href="#/admin" className={route==='/admin'?'font-bold underline':''}>Admin</a>}
         <a href="#/exports" className={route==='/exports'?'font-bold underline text-guardian-red':''}>Exports</a>
       </div>
     </nav>
   )
 }
+
 
 function HomeFeed(){
   const [posts, setPosts] = useState([])

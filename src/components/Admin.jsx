@@ -1,6 +1,27 @@
 import { useEffect, useState } from 'react'
 import { fetchPosts, authFetch } from '../api'
 
+function uploadWithProgress(url, file, token, onProgress){
+  return new Promise((resolve, reject)=>{
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', url, true)
+    xhr.setRequestHeader('x-admin-token', token || '')
+    xhr.upload.onprogress = (e)=>{
+      if (e.lengthComputable) onProgress(Math.round((e.loaded/e.total)*100))
+    }
+    xhr.onload = ()=>{
+      if (xhr.status >= 200 && xhr.status < 300){
+        try { resolve(JSON.parse(xhr.responseText)) } catch { resolve({ ok:true }) }
+      } else reject(new Error(xhr.responseText || 'Upload failed'))
+    }
+    xhr.onerror = ()=> reject(new Error('Network error'))
+    const form = new FormData()
+    form.append('file', file)
+    xhr.send(form)
+  })
+}
+
+
 export default function Admin() {
   const [token, setToken] = useState(localStorage.getItem('ADMIN_TOKEN') || '')
   const [posts, setPosts] = useState([])
@@ -11,8 +32,27 @@ export default function Admin() {
   const [editing, setEditing] = useState(null) // id
   const [form, setForm] = useState({ title:'', tagline:'', text:'', imageUrl:'' })
   const [msg, setMsg] = useState('')
+  const [progress, setProgress] = useState(0)
+  const [busy, setBusy] = useState(false)
 
   async function load(){ setPosts(await fetchPosts()) }
+
+  async function createShort(p){
+    try{
+      setBusy(true); setMsg('Generating short...'); setProgress(10)
+      const token = localStorage.getItem('ADMIN_TOKEN') || ''
+      const body = { postId: p.id, ratio: 'vertical', startSec: 0, durationSec: 20, burnSubtitles: captionOn }
+      const r = await fetch(`${import.meta.env.VITE_API_BASE || ''}/api/shorts/create`, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', 'x-admin-token': token },
+        body: JSON.stringify(body)
+      })
+      if (!r.ok) throw new Error(await r.text())
+      setProgress(90); setMsg('Finalizing...')
+      await load(); setProgress(100); setMsg('Short ready!')
+    }catch(e){ setMsg(String(e.message||e)) } finally { setBusy(false); setTimeout(()=>setProgress(0), 1200) }
+  }
+
   useEffect(()=>{ load() }, [])
 
   function saveToken(){
@@ -145,6 +185,7 @@ export default function Admin() {
                     {!p.deleted && <button className="underline" onClick={()=>startEdit(p)}>Edit</button>}
                     {!p.deleted && <button className="underline" onClick={()=>genVideo(p.id)}>{captionOn? 'Create Video+CC' : 'Create Video'}</button>}
                     {!p.deleted && <button className="underline" onClick={()=>remove(p.id)}>Delete</button>}
+                    {!p.deleted && <button className="underline" onClick={()=>createShort(p)}>Create Short</button>}
                     {p.deleted && <button className="underline" onClick={()=>restore(p.id)}>Restore</button>}
                   </div>
                 )}
