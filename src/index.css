@@ -1,8 +1,1 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-:root { --g-blue:#052962; --g-red:#c70000; }
-html, body, #root { height: 100%; }
-.masthead-title { font-family:'Playfair Display', serif; font-weight:900; letter-spacing:-0.5px; }
-.wrap-balance { text-wrap: balance; }
+@import 'tailwindcss';

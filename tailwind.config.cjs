@@ -1,16 +1,13 @@
-/** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ["./index.html", "./src/**/*.{js,jsx,ts,tsx}"],
+  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
       fontFamily: {
-        display: ["'Playfair Display'", "serif"],
-        sans: ["Inter", "system-ui", "sans-serif"]
+        serif: ["Playfair Display", "Georgia", "serif"],
+        headline: ["Archivo Black", "Impact", "sans-serif"],
+        sans: ["Inter", "Helvetica", "Arial", "sans-serif"],
       },
-      colors: {
-        guardian: { blue: "#052962", red: "#c70000" }
-      }
-    }
+    },
   },
-  plugins: [require("@tailwindcss/typography")]
-};
+  plugins: [],
+}
