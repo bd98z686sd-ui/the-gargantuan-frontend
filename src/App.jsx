@@ -45,6 +45,11 @@ function HomeFeed(){
       { id:'e5', title:'Microwave risotto: a manifesto', tagline:'Lifestyle', text:'Do not try this at home.', date:new Date().toISOString() }
     ])
   })() }, [])
+  /* POLL_V108 */
+  useEffect(()=>{
+    const id = setInterval(()=>{ fetchPosts().then(setPosts) }, 5000)
+    return ()=> clearInterval(id)
+  }, [])
   const [first, second, third, ...rest] = posts
   return (
     <div className="flex-1">

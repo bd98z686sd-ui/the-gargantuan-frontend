@@ -8,6 +8,7 @@ export default function PostCard({ post, big }) {
       ) : post.audioUrl ? (
         <audio className="w-full mb-3" controls src={post.audioUrl}></audio>
       ) : null}
+      {!post.videoUrl && post.audioUrl && <div className="text-xs text-gray-600">Processing… generating video</div>}
       {post.imageUrl && <img className="w-full mb-3" src={post.imageUrl} alt="" />}
       {post.text && <p className="prose max-w-none">{post.text}</p>}
     </article>

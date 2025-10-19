@@ -32,6 +32,28 @@ export default function Admin() {
   const [editing, setEditing] = useState(null) // id
   const [form, setForm] = useState({ title:'', tagline:'', text:'', imageUrl:'' })
   const [msg, setMsg] = useState('')
+
+  const API = import.meta.env.VITE_API_BASE || ''
+  const [health, setHealth] = useState(null)
+
+  async function checkHealth(){
+    try{
+      const r = await fetch(`${API}/api/health`)
+      const j = await r.json().catch(()=>({}))
+      setHealth(j)
+      setMsg(j.ok ? `Connected (${j.storageMode}${j.bucket?':'+j.bucket:''})` : 'API not reachable')
+    }catch(e){ setMsg('API not reachable') }
+  }
+  useEffect(()=>{ checkHealth() }, [])
+
+  function saveToken(){
+    localStorage.setItem('ADMIN_TOKEN', token || '')
+    setMsg('Token saved'); setTimeout(checkHealth, 300)
+  }
+  function clearToken(){
+    localStorage.removeItem('ADMIN_TOKEN'); setToken(''); setMsg('Token cleared')
+  }
+
   const [progress, setProgress] = useState(0)
   const [busy, setBusy] = useState(false)
 
@@ -112,7 +134,17 @@ export default function Admin() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
+    <div
+      className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        <div><span className="font-semibold">API:</span> {API||'(not set)'}</div>
+        <div><span className="font-semibold">Health:</span> {health? (health.ok? 'OK':'Down') : '…'}</div>
+        <div className="flex items-center gap-2"><span className="font-semibold">Token:</span>
+          <input className="border px-2 py-1" value={token} onChange={e=>setToken(e.target.value)} placeholder="paste admin token" />
+          <button className="px-2 py-1 bg-guardian-blue text-white" onClick={saveToken}>Save</button>
+          <button className="px-2 py-1 bg-gray-200" onClick={clearToken}>Clear</button>
+        </div>
+      </div> className="mx-auto max-w-5xl px-4 py-8">
       <h2 className="font-display text-3xl mb-4">Admin</h2>
       <div className="flex flex-wrap items-center gap-2 mb-6">
         <input className="border px-3 py-2 w-80" placeholder="Admin token" value={token} onChange={e=>setToken(e.target.value)} />

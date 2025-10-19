@@ -4,6 +4,6 @@ export default function Footer() {
       <div className="mx-auto max-w-5xl px-4 py-3 text-sm">
         © 2025–2026 The Gargantuan · Contact: <a className="underline" href="mailto:hellogargantuan69@gmail.com">hellogargantuan69@gmail.com</a>
       </div>
-    <div className="mt-2">v1.0.6</div></footer>
+    <div className="mt-2">v1.0.8</div></footer>
   )
 }
