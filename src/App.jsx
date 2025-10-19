@@ -25,7 +25,7 @@ function Nav({ route }){
       <div className="mx-auto max-w-5xl px-4 py-3 flex gap-4 text-sm">
         <a href="#/" className={route==='/'?'font-bold underline':''}>Home</a>
         {hasToken && <a href="#/admin" className={route==='/admin'?'font-bold underline':''}>Admin</a>}
-        <a href="#/exports" className={route==='/exports'?'font-bold underline text-guardian-red':''}>Exports</a>
+        <a href="#/exports" className={route==='/exports'?'font-bold underline text-guardian-red underline':''}>Exports</a>
       </div>
     </nav>
   )
