@@ -75,7 +75,7 @@ export default function Uploader({ onDone, token, toast }) {
           </button>
         </div>
         <div className="space-y-2">
-          {status==='uploading' && (<div className="w-full bg-[#eee] rounded h-2 overflow-hidden"><div className="h-2 bg-[#052962]" style={{width:`${progress}%`}} /></div><div className="text-xs mt-1">{progress}%</div>)}
+          {status==='uploading' && (<><div className="w-full bg-[#eee] rounded h-2 overflow-hidden"><div className="h-2 bg-[#052962]" style={{width:`${progress}%`}} /></div><div className="text-xs mt-1">{progress}%</div></>)}
           {status==='generating' && (<div className="w-full bg-[#eee] rounded h-2 overflow-hidden relative"><div className="h-2 bg-[#052962] animate-pulse w-1/3 absolute left-0" /></div>)}
           {message && <p className="text-sm text-[#052962]">{message}</p>}
         </div>
