@@ -1,8 +1,36 @@
 import React, { useRef, useState, useCallback } from 'react';
+import MDEditor from '@uiw/react-md-editor';
+import { commands } from '@uiw/react-md-editor';
 const API_BASE = import.meta.env.VITE_API_BASE || 'https://the-gargantuan-backend.onrender.com';
 export default function Uploader({ onDone, token, toast }) {
   const fileRef = useRef(null);
   const [title, setTitle] = useState('The Gargantuan');
+  const [body, setBody] = useState('');
+  const fileInputImage = useRef(null);
+  const onPickImage = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const fd = new FormData();
+      fd.append('image', file);
+      const resp = await fetch(`${API_BASE}/api/images/upload`, { method:'POST', headers:{ 'x-admin-token': token }, body: fd });
+      const j = await resp.json();
+      if (!resp.ok || !j?.url) throw new Error(j?.error || 'upload failed');
+      const md = `![${file.name}](${j.url})`;
+      setBody(prev => (prev ? prev + `\n\n${md}\n` : md));
+    } catch (err) {
+      console.error('image upload error', err);
+      alert('Image upload failed');
+    } finally {
+      e.target.value = '';
+    }
+  };
+  const insertImageBtn = (
+    <button type="button" onClick={()=>fileInputImage.current?.click()} className="px-2 py-1 rounded bg-[#052962] text-white text-xs">
+      Insert image
+    </button>
+  );
+
   const [status, setStatus] = useState('idle');
   const [message, setMessage] = useState('');
   const [progress, setProgress] = useState(0);
@@ -43,7 +71,7 @@ export default function Uploader({ onDone, token, toast }) {
         xhr.send(fd);
       }).catch(err=>{ if (err?.unauthorized) unauthorized('upload'); else toast?.show(err.message||'Upload failed','error'); throw err; });
 
-      setStatus('generating'); setMessage('Generating video… 0%');
+      setStatus('generating'); setMessage('Generating video…');
       const gen = await fetch(`${API_BASE}/api/generate-video`, {
         method:'POST', headers:{ 'Content-Type':'application/json', 'x-admin-token': token },
         body: JSON.stringify({ filename: upRes.filename, title })
@@ -75,7 +103,7 @@ export default function Uploader({ onDone, token, toast }) {
           </button>
         </div>
         <div className="space-y-2">
-          {status==='uploading' && (<><div className="w-full bg-[#eee] rounded h-2 overflow-hidden"><div className="h-2 bg-[#052962]" style={{width:`${progress}%`}} /></div><div className="text-xs mt-1">{progress}%</div></>)}
+          {status==='uploading' && (<div className="w-full bg-[#eee] rounded h-2 overflow-hidden"><div className="h-2 bg-[#052962]" style={{width:`${progress}%`}} /></div>)}
           {status==='generating' && (<div className="w-full bg-[#eee] rounded h-2 overflow-hidden relative"><div className="h-2 bg-[#052962] animate-pulse w-1/3 absolute left-0" /></div>)}
           {message && <p className="text-sm text-[#052962]">{message}</p>}
         </div>
