@@ -1,8 +1,26 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import MDEditor from '@uiw/react-md-editor';
 const API_BASE = import.meta.env.VITE_API_BASE || 'https://the-gargantuan-backend.onrender.com';
+
+
+  function setBodyFor(id, val){ setBodies(prev=>({ ...prev, [id]: val })) }
+  async function handleBodySave(item){
+    try{
+      const id = item.filename
+      const base = id.replace(/\.[^/.]+$/, '')
+      const res = await fetch(`${API_BASE}/api/posts/${encodeURIComponent(id)}`,{
+        method:'PATCH',
+        headers:{ 'Content-Type':'application/json', 'x-admin-token': token },
+        body: JSON.stringify({ body: bodies[base]||'' })
+      })
+      if(!res.ok) throw new Error('Save failed')
+      toast?.show('Saved body','ok')
+    }catch(e){ toast?.show('Failed to save body','error') }
+  }
 
 export default function ManagePosts({ token, toast }){
   const [items, setItems] = useState([]);
+  const [bodies, setBodies] = useState({});
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState({});
 
@@ -12,6 +30,7 @@ export default function ManagePosts({ token, toast }){
       const res = await fetch(`${API_BASE}/api/posts`, { cache:'no-store' });
       const data = await res.json();
       setItems(data);
+      const b = {}; data.forEach(it=>{ b[it.filename.replace(/\.[^/.]+$/, '')] = it.body || ''; }); setBodies(b);
       setSelected({});
     }catch(e){ toast?.show('Failed to load posts','error'); }
     finally{ setLoading(false); }
@@ -82,7 +101,32 @@ export default function ManagePosts({ token, toast }){
       </div>
       {loading && <p>Loading…</p>}
       {!loading && rows.length===0 && <p className="text-sm text-[#666]">No posts yet.</p>}
+
       {!loading && rows.length>0 && (
+        <div className="my-6 p-4 border rounded-xl">
+          <h3 className="font-semibold mb-2">Post body (Markdown)</h3>
+          <p className="text-xs text-[#666] mb-2">Inline formatting and images supported.</p>
+          {(()=>{
+            const current = rows[0]?.item
+            if(!current) return null
+            const base = current.filename.replace(/\.[^/.]+$/, '')
+            return (
+              <div data-color-mode="light">
+                <MDEditor value={bodies[base]||''} onChange={(v)=>setBodyFor(base, v||'')} />
+                <div className="mt-2 flex gap-2">
+                  <ImageUpload token={token} onInserted={(url)=>{
+                    const cur = bodies[base]||''
+                    setBodyFor(base, (cur + `\n\n![](${url})\n`))
+                    toast?.show('Image inserted','ok')
+                  }} />
+                  <button className="px-3 py-1 rounded bg-[#052962] text-white" onClick={()=>handleBodySave(current)}>Save body</button>
+                </div>
+              </div>
+            )
+          })()}
+        </div>
+      )}
+
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="text-left text-[#555]">
