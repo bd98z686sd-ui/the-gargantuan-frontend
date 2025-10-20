@@ -1,5 +1,8 @@
 import React, { useState, useRef } from 'react';
-import MDEditor from '@uiw/react-md-editor';
+// We deliberately avoid external markdown editor dependencies because some
+// registries restrict access to private packages (e.g. @uiw/react-md-editor).
+// Instead we present a plain textarea for writing markdown.  The preview is
+// rendered on the homepage using the `marked` library.
 
 // Unified publish form for The Gargantuan.  Allows the admin to create
 // multimedia posts consisting of markdown text, optional images and optional
@@ -172,8 +175,14 @@ export default function Publish({ token, toast, onDone }) {
         </div>
         <div className="space-y-2">
           <label className="block text-sm font-semibold">Body (Markdown)</label>
-          <div className="border border-[#dcdcdc] rounded">
-            <MDEditor value={body} onChange={setBody} height={300} />
+          <div>
+            <textarea
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              rows={12}
+              className="w-full border border-[#dcdcdc] rounded px-3 py-2 text-sm font-mono"
+              placeholder="Write your post in Markdown..."
+            />
           </div>
           <div className="flex gap-3 items-center">
             <input type="file" ref={imageInputRef} accept="image/*" className="hidden" onChange={handleInsertImage} />
