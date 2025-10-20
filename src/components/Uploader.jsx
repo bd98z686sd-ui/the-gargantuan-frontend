@@ -27,13 +27,13 @@ export default function Uploader({ onDone, token, toast }) {
     if (!file){ toast?.show('Please choose an audio file (.mp3)','error'); return; }
     if (!token){ unauthorized('no token'); return; }
     try{
-      setStatus('uploading'); setProgress(0); setMessage('Uploading audio…');
+      setStatus('uploading'); setProgress(0); setMessage(`Uploading audio… 0%`);
       const fd = new FormData(); fd.append('audio', file);
       const upRes = await new Promise((resolve,reject)=>{
         const xhr = new XMLHttpRequest();
         xhr.open('POST', `${API_BASE}/api/upload`);
         xhr.setRequestHeader('x-admin-token', token);
-        xhr.upload.onprogress = (evt)=>{ if(evt.lengthComputable){ setProgress(Math.round(evt.loaded/evt.total*100)); } };
+        xhr.upload.onprogress = (evt)=>{ if(evt.lengthComputable){ const pct = Math.round(evt.loaded/evt.total*100); setProgress(pct); setMessage(`Uploading audio… ${pct}%`); } };
         xhr.onload = ()=>{
           if (xhr.status===401) return reject({ unauthorized:true });
           if (xhr.status>=200 && xhr.status<300){ try{ resolve(JSON.parse(xhr.responseText)); }catch{ reject(new Error('Bad JSON')); } }
@@ -43,7 +43,7 @@ export default function Uploader({ onDone, token, toast }) {
         xhr.send(fd);
       }).catch(err=>{ if (err?.unauthorized) unauthorized('upload'); else toast?.show(err.message||'Upload failed','error'); throw err; });
 
-      setStatus('generating'); setMessage('Generating video…');
+      setStatus('generating'); setMessage('Generating video… 0%');
       const gen = await fetch(`${API_BASE}/api/generate-video`, {
         method:'POST', headers:{ 'Content-Type':'application/json', 'x-admin-token': token },
         body: JSON.stringify({ filename: upRes.filename, title })
@@ -75,7 +75,7 @@ export default function Uploader({ onDone, token, toast }) {
           </button>
         </div>
         <div className="space-y-2">
-          {status==='uploading' && (<div className="w-full bg-[#eee] rounded h-2 overflow-hidden"><div className="h-2 bg-[#052962]" style={{width:`${progress}%`}} /></div>)}
+          {status==='uploading' && (<div className="w-full bg-[#eee] rounded h-2 overflow-hidden"><div className="h-2 bg-[#052962]" style={{width:`${progress}%`}} /></div><div className="text-xs mt-1">{progress}%</div>)}
           {status==='generating' && (<div className="w-full bg-[#eee] rounded h-2 overflow-hidden relative"><div className="h-2 bg-[#052962] animate-pulse w-1/3 absolute left-0" /></div>)}
           {message && <p className="text-sm text-[#052962]">{message}</p>}
         </div>
