@@ -1,1 +1,14 @@
-@import 'tailwindcss';
+/*
+ * Tailwind CSS base, component and utility styles.
+ *
+ * We use the @tailwind directives instead of importing the JavaScript
+ * entrypoint directly. Importing 'tailwindcss' itself causes PostCSS
+ * to attempt to parse a JavaScript file (tailwindcss/lib/index.js) as
+ * CSS, leading to errors such as "Unknown word \"use strict\"". The
+ * @tailwind directives tell PostCSS to generate the appropriate
+ * layers from the configured tailwind.config.cjs.
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
