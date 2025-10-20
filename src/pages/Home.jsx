@@ -1,31 +1,46 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { marked } from 'marked';
+
 const API_BASE = import.meta.env.VITE_API_BASE || 'https://the-gargantuan-backend.onrender.com';
 
+// Fetch published posts from the backend.  Returns the array of posts along with
+// loading and error states.
 function usePosts() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   async function load() {
-    try{
-      setLoading(true); setError('');
-      const res = await fetch(`${API_BASE}/api/posts`, { cache:'no-store' });
+    try {
+      setLoading(true);
+      setError('');
+      const res = await fetch(`${API_BASE}/api/posts`, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setPosts(await res.json());
-    }catch(e){ setError('Could not load posts.'); }
-    finally{ setLoading(false); }
+      const json = await res.json();
+      setPosts(json);
+    } catch (e) {
+      setError('Could not load posts.');
+    } finally {
+      setLoading(false);
+    }
   }
-  useEffect(()=>{ load(); },[]);
+  useEffect(() => { load(); }, []);
   return { posts, loading, error, reload: load };
 }
 
-export default function Home(){
+export default function Home() {
   const { posts, loading, error } = usePosts();
-  const today = new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
-  const normalized = useMemo(()=> (posts||[]).map((p,i)=>({
-    id: p.id ?? i, title: p.title ?? p.filename ?? 'Untitled',
-    date: p.date ? new Date(p.date).toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' }) : '',
-    url: p.absoluteUrl || (p.url ? `${API_BASE}${p.url}` : null),
-    type: p.type || (p.url?.endsWith('.mp4') ? 'video' : 'audio')
+  const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  // Normalize posts for display: convert date to string and preserve body.
+  const normalized = useMemo(() => (posts || []).map((p, i) => ({
+    id: p.id ?? i,
+    title: p.title || 'Untitled',
+    date: p.date ? new Date(p.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '',
+    type: p.type,
+    playUrl: p.playUrl,
+    audioUrl: p.audioUrl,
+    videoUrl: p.videoUrl,
+    imageUrl: p.imageUrl,
+    body: p.body || '',
   })), [posts]);
   const hero = normalized[0];
   const rest = normalized.slice(1);
@@ -50,53 +65,75 @@ export default function Home(){
         {loading && <div className="bg-white border border-[#dcdcdc] rounded p-4">Loading…</div>}
         {error && <div className="bg-white border border-[#dcdcdc] rounded p-4 text-red-600">{error}</div>}
 
-        {hero && (
-          <section className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="md:col-span-2">
-              <article className="bg-white rounded-lg border border-[#dcdcdc] overflow-hidden">
-                <div className="relative">
-                  {hero.type === 'video' && hero.url ? (
-                    <video className="w-full aspect-video" src={hero.url} controls playsInline />
-                  ) : (
-                    <div className="w-full aspect-video bg-[#052962]" />
-                  )}
-                </div>
-                <div className="p-5 sm:p-6">
-                  <h2 className="text-2xl sm:text-3xl font-serif font-semibold mb-2">{hero.title}</h2>
-                  {hero.date && <p className="text-xs text-[#666]">{hero.date}</p>}
-                </div>
-              </article>
-            </div>
-
-            <aside className="space-y-4">
-              <h3 className="font-headline text-xl">Recent</h3>
-              <div className="border-t border-[#dcdcdc]" />
-              {rest.length === 0 && <p className="text-sm text-[#666]">No recent items.</p>}
-              {rest.slice(0,4).map((p) => (
-                <a key={p.id} href={p.url || '#'} className="block hover:underline">
-                  <div className="font-serif">{p.title}</div>
-                  {p.date && <div className="text-xs text-[#666]">{p.date}</div>}
-                </a>
-              ))}
-            </aside>
-          </section>
-        )}
-
-        <section className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {rest.slice(4).map((p) => (
-            <article key={p.id} className="bg-white rounded-lg border border-[#dcdcdc] overflow-hidden hover:shadow transition">
-              {p.type === 'video' && p.url ? (
-                <video className="w-full aspect-video" src={p.url} controls playsInline />
-              ) : (
-                <div className="w-full aspect-video bg-[#052962]" />
-              )}
-              <div className="p-4">
-                <h5 className="font-headline text-xl mb-1">{p.title}</h5>
-                {p.date && <p className="text-xs text-[#666]">{p.date}</p>}
+      {hero && (
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="md:col-span-2">
+            <article className="bg-white rounded-lg border border-[#dcdcdc] overflow-hidden">
+              <div className="relative">
+                {/* Render hero media */}
+                {hero.type === 'video' && hero.videoUrl && (
+                  <video className="w-full aspect-video" src={hero.videoUrl} controls playsInline />
+                )}
+                {hero.type === 'audio' && hero.audioUrl && (
+                  <audio className="w-full" src={hero.audioUrl} controls />
+                )}
+                {hero.type === 'image' && hero.imageUrl && (
+                  <img className="w-full aspect-video object-cover" src={hero.imageUrl} alt={hero.title} />
+                )}
+                {hero.type === 'text' && (
+                  <div className="w-full aspect-video bg-[#052962]" />
+                )}
+              </div>
+              <div className="p-5 sm:p-6 space-y-3">
+                <h2 className="text-2xl sm:text-3xl font-serif font-semibold mb-2">{hero.title}</h2>
+                {hero.date && <p className="text-xs text-[#666]">{hero.date}</p>}
+                {hero.body && (
+                  <div className="prose max-w-none text-sm" dangerouslySetInnerHTML={{ __html: marked.parse(hero.body) }} />
+                )}
               </div>
             </article>
-          ))}
+          </div>
+
+          <aside className="space-y-4">
+            <h3 className="font-headline text-xl">Recent</h3>
+            <div className="border-t border-[#dcdcdc]" />
+            {rest.length === 0 && <p className="text-sm text-[#666]">No recent items.</p>}
+            {rest.slice(0, 4).map((p) => (
+              <a key={p.id} href="#" className="block hover:underline">
+                <div className="font-serif">{p.title}</div>
+                {p.date && <div className="text-xs text-[#666]">{p.date}</div>}
+              </a>
+            ))}
+          </aside>
         </section>
+      )}
+
+      <section className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        {rest.slice(4).map((p) => (
+          <article key={p.id} className="bg-white rounded-lg border border-[#dcdcdc] overflow-hidden hover:shadow transition">
+            {/* Render card media */}
+            {p.type === 'video' && p.videoUrl && (
+              <video className="w-full aspect-video" src={p.videoUrl} controls playsInline />
+            )}
+            {p.type === 'audio' && p.audioUrl && (
+              <audio className="w-full" src={p.audioUrl} controls />
+            )}
+            {p.type === 'image' && p.imageUrl && (
+              <img className="w-full aspect-video object-cover" src={p.imageUrl} alt={p.title} />
+            )}
+            {p.type === 'text' && (
+              <div className="w-full aspect-video bg-[#052962]" />
+            )}
+            <div className="p-4 space-y-2">
+              <h5 className="font-headline text-xl mb-1">{p.title}</h5>
+              {p.date && <p className="text-xs text-[#666]">{p.date}</p>}
+              {p.body && (
+                <div className="prose max-w-none text-xs" dangerouslySetInnerHTML={{ __html: marked.parse(p.body) }} />
+              )}
+            </div>
+          </article>
+        ))}
+      </section>
       </main>
 
       <footer className="mt-10 bg-[#052962] text-white">

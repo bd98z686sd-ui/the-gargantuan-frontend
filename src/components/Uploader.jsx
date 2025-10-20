@@ -1,21 +1,8 @@
 import React, { useRef, useState, useCallback } from 'react';
-import MDEditor from '@uiw/react-md-editor';
 const API_BASE = import.meta.env.VITE_API_BASE || 'https://the-gargantuan-backend.onrender.com';
 export default function Uploader({ onDone, token, toast }) {
   const fileRef = useRef(null);
   const [title, setTitle] = useState('The Gargantuan');
-  const [body, setBody] = useState('');
-  const fileInputImage = useRef(null);
-  const [heroImage, setHeroImage] = useState('');
-  const onPickImage = async (e) => {
-    const file = e.target.files?.[0]; if (!file) return;
-    const fd = new FormData(); fd.append('image', file);
-    const resp = await fetch(`${API_BASE}/api/images/upload`, { method:'POST', headers:{ 'x-admin-token': token }, body: fd });
-    const j = await resp.json(); if (!resp.ok || !j?.url) { alert('Image upload failed'); return; }
-    const md = `![${file.name}](${j.url})`;
-    setHeroImage(j.url);
-    setBody(prev => (prev ? prev + `\n\n${md}\n` : md));
-  };
   const [status, setStatus] = useState('idle');
   const [message, setMessage] = useState('');
   const [progress, setProgress] = useState(0);
@@ -35,30 +22,18 @@ export default function Uploader({ onDone, token, toast }) {
   function unauthorized(where){ const msg=`Unauthorized (${where}). Check your admin token.`; setStatus('error'); setMessage(msg); toast?.show(msg,'error'); }
 
   async function handleUpload(e){
-    // text/image-only path
-    if (!fileInput.current?.files?.[0]) {
-      setStatus('publishing'); setMessage('Publishing post…');
-      const resp = await fetch(`${API_BASE}/api/create-post`, {
-        method:'POST', headers:{ 'Content-Type':'application/json', 'x-admin-token': token },
-        body: JSON.stringify({ title, body, imageUrl: heroImage })
-      });
-      if (!resp.ok) { alert('Create post failed'); return; }
-      setStatus('done'); setMessage('Posted! Refreshing…');
-      window.location.reload();
-      return;
-    }
     e.preventDefault();
     const file = fileRef.current?.files?.[0];
     if (!file){ toast?.show('Please choose an audio file (.mp3)','error'); return; }
     if (!token){ unauthorized('no token'); return; }
     try{
-      setStatus('uploading'); setProgress(0); setMessage(`Uploading audio… 0%`);
+      setStatus('uploading'); setProgress(0); setMessage('Uploading audio…');
       const fd = new FormData(); fd.append('audio', file);
       const upRes = await new Promise((resolve,reject)=>{
         const xhr = new XMLHttpRequest();
         xhr.open('POST', `${API_BASE}/api/upload`);
         xhr.setRequestHeader('x-admin-token', token);
-        xhr.upload.onprogress = (evt)=>{ if(evt.lengthComputable){ const pct = Math.round(evt.loaded/evt.total*100); setProgress(pct); setMessage(`Uploading audio… ${pct}%`); } };
+        xhr.upload.onprogress = (evt)=>{ if(evt.lengthComputable){ setProgress(Math.round(evt.loaded/evt.total*100)); } };
         xhr.onload = ()=>{
           if (xhr.status===401) return reject({ unauthorized:true });
           if (xhr.status>=200 && xhr.status<300){ try{ resolve(JSON.parse(xhr.responseText)); }catch{ reject(new Error('Bad JSON')); } }

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminToken } from '../useAdminToken.js';
-import Uploader from '../components/Uploader.jsx';
+import Publish from '../components/Publish.jsx';
 import ManagePosts from '../components/ManagePosts.jsx';
 import Trash from '../components/Trash.jsx';
 import Snackbar from '../components/Snackbar.jsx';
@@ -49,7 +49,7 @@ export default function Admin(){
               ))}
             </div>
 
-            {tab==='publish' && <Uploader onDone={()=>toast.show('Published successfully.','ok')} token={token} toast={toast} />}
+            {tab==='publish' && <Publish token={token} toast={toast} onDone={()=>toast.show('Published successfully.','ok')} />}
             {tab==='manage' && <ManagePosts token={token} toast={toast} />}
             {tab==='trash' && <Trash token={token} toast={toast} />}
 
