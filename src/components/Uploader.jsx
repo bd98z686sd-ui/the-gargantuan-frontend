@@ -1,6 +1,5 @@
 import React, { useRef, useState, useCallback } from 'react';
 import MDEditor from '@uiw/react-md-editor';
-import { commands } from '@uiw/react-md-editor';
 const API_BASE = import.meta.env.VITE_API_BASE || 'https://the-gargantuan-backend.onrender.com';
 export default function Uploader({ onDone, token, toast }) {
   const fileRef = useRef(null);
@@ -21,16 +20,8 @@ export default function Uploader({ onDone, token, toast }) {
     } catch (err) {
       console.error('image upload error', err);
       alert('Image upload failed');
-    } finally {
-      e.target.value = '';
-    }
+    } finally { e.target.value = ''; }
   };
-  const insertImageBtn = (
-    <button type="button" onClick={()=>fileInputImage.current?.click()} className="px-2 py-1 rounded bg-[#052962] text-white text-xs">
-      Insert image
-    </button>
-  );
-
   const [status, setStatus] = useState('idle');
   const [message, setMessage] = useState('');
   const [progress, setProgress] = useState(0);
