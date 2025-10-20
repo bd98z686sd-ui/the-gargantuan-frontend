@@ -6,13 +6,15 @@ export default function Uploader({ onDone, token, toast }) {
   const [title, setTitle] = useState('The Gargantuan');
   const [body, setBody] = useState('');
   const fileInputImage = useRef(null);
+  const [heroImage, setHeroImage] = useState('');
   const onPickImage = async (e) => {
     const file = e.target.files?.[0]; if (!file) return;
-    try { const fd = new FormData(); fd.append('image', file);
-      const resp = await fetch(`${API_BASE}/api/images/upload`, { method:'POST', headers:{ 'x-admin-token': token }, body: fd });
-      const j = await resp.json(); if (!resp.ok || !j?.url) throw new Error(j?.error || 'upload failed');
-      const md = `![${file.name}](${j.url})`; setBody(prev => (prev ? prev + `\n\n${md}\n` : md));
-    } catch(e) { alert('Image upload failed'); } finally { e.target.value=''; }
+    const fd = new FormData(); fd.append('image', file);
+    const resp = await fetch(`${API_BASE}/api/images/upload`, { method:'POST', headers:{ 'x-admin-token': token }, body: fd });
+    const j = await resp.json(); if (!resp.ok || !j?.url) { alert('Image upload failed'); return; }
+    const md = `![${file.name}](${j.url})`;
+    setHeroImage(j.url);
+    setBody(prev => (prev ? prev + `\n\n${md}\n` : md));
   };
   const [status, setStatus] = useState('idle');
   const [message, setMessage] = useState('');
@@ -33,6 +35,18 @@ export default function Uploader({ onDone, token, toast }) {
   function unauthorized(where){ const msg=`Unauthorized (${where}). Check your admin token.`; setStatus('error'); setMessage(msg); toast?.show(msg,'error'); }
 
   async function handleUpload(e){
+    // text/image-only path
+    if (!fileInput.current?.files?.[0]) {
+      setStatus('publishing'); setMessage('Publishing post…');
+      const resp = await fetch(`${API_BASE}/api/create-post`, {
+        method:'POST', headers:{ 'Content-Type':'application/json', 'x-admin-token': token },
+        body: JSON.stringify({ title, body, imageUrl: heroImage })
+      });
+      if (!resp.ok) { alert('Create post failed'); return; }
+      setStatus('done'); setMessage('Posted! Refreshing…');
+      window.location.reload();
+      return;
+    }
     e.preventDefault();
     const file = fileRef.current?.files?.[0];
     if (!file){ toast?.show('Please choose an audio file (.mp3)','error'); return; }
