@@ -7,20 +7,12 @@ export default function Uploader({ onDone, token, toast }) {
   const [body, setBody] = useState('');
   const fileInputImage = useRef(null);
   const onPickImage = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const fd = new FormData();
-      fd.append('image', file);
+    const file = e.target.files?.[0]; if (!file) return;
+    try { const fd = new FormData(); fd.append('image', file);
       const resp = await fetch(`${API_BASE}/api/images/upload`, { method:'POST', headers:{ 'x-admin-token': token }, body: fd });
-      const j = await resp.json();
-      if (!resp.ok || !j?.url) throw new Error(j?.error || 'upload failed');
-      const md = `![${file.name}](${j.url})`;
-      setBody(prev => (prev ? prev + `\n\n${md}\n` : md));
-    } catch (err) {
-      console.error('image upload error', err);
-      alert('Image upload failed');
-    } finally { e.target.value = ''; }
+      const j = await resp.json(); if (!resp.ok || !j?.url) throw new Error(j?.error || 'upload failed');
+      const md = `![${file.name}](${j.url})`; setBody(prev => (prev ? prev + `\n\n${md}\n` : md));
+    } catch(e) { alert('Image upload failed'); } finally { e.target.value=''; }
   };
   const [status, setStatus] = useState('idle');
   const [message, setMessage] = useState('');
