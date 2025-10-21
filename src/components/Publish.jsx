@@ -105,24 +105,36 @@ export default function Publish({ token, toast, onDone }) {
           else toast?.show(err.message || 'Upload failed', 'error');
           throw err;
         });
-        // Step 2: generate video
+        // Step 2: generate video.  This may take a while and could fail if
+        // ffmpeg is not available or the input is unsupported.  We wrap the
+        // generation in a try/catch so we can gracefully fall back to an
+        // audio‑only post if it fails.
         setStatus('generating');
         setMessage('Generating video…');
-        const genRes = await fetch(`${API_BASE}/api/generate-video`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
-          body: JSON.stringify({ filename: `${upRes.id}.${audioFile.name.split('.').pop()}`, title }),
-        });
-        if (genRes.status === 401) {
-          unauthorized('generate');
-          return;
+        let generatedId;
+        try {
+          const genRes = await fetch(`${API_BASE}/api/generate-video`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
+            body: JSON.stringify({ filename: `${upRes.id}.${audioFile.name.split('.').pop()}`, title }),
+          });
+          if (genRes.status === 401) {
+            unauthorized('generate');
+            return;
+          }
+          if (!genRes.ok) throw new Error(`Generate failed (${genRes.status})`);
+          const genJson = await genRes.json();
+          generatedId = genJson.id;
+        } catch (err) {
+          console.error('generate-video failed', err);
+          // Fallback: use the id from the upload and proceed without a video.
+          generatedId = upRes.id;
+          setStatus('saving');
+          setMessage('Video generation failed. Saving audio post…');
         }
-        if (!genRes.ok) throw new Error(`Generate failed (${genRes.status})`);
-        const { id } = await genRes.json();
-        // Step 3: patch metadata with body, image and draft flag
-        setStatus('saving');
-        setMessage('Saving metadata…');
-        const patchRes = await fetch(`${API_BASE}/api/posts/${encodeURIComponent(id)}`, {
+        // Step 3: patch metadata with title, body, image and draft flag.  If
+        // generation failed the post will remain audio‑only.
+        const patchRes = await fetch(`${API_BASE}/api/posts/${encodeURIComponent(generatedId)}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
           body: JSON.stringify({ title, body, imageUrl: '', draft }),

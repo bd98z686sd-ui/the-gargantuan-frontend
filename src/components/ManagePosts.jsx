@@ -40,10 +40,13 @@ export default function ManagePosts({ token, toast }) {
     load();
   }, []);
 
-  function toggleAll(e, which) {
+  // Toggle selection of all rows.  When the master checkbox is checked all
+  // published posts and drafts will be marked as selected; when unchecked
+  // they will all be cleared.
+  function toggleAll(e) {
     const checked = e.target.checked;
     const next = { ...selected };
-    const list = which === 'draft' ? drafts : posts;
+    const list = [...(posts || []), ...(drafts || [])];
     if (checked) list.forEach((p) => { next[p.id] = true; });
     else list.forEach((p) => { next[p.id] = false; });
     setSelected(next);
@@ -126,17 +129,45 @@ export default function ManagePosts({ token, toast }) {
 
   // Compose rows for both published posts and drafts.
   const rows = useMemo(() => {
+    // Combine published posts and drafts into a single array.  Include a
+    // snippet of the body for quick preview in the table.  The snippet is
+    // truncated to 60 characters for compact display.
     const all = [...(posts || []), ...(drafts || [])];
-    return all.map((p, i) => ({
-      key: i,
-      id: p.id,
-      title: p.title,
-      date: p.date,
-      type: p.type,
-      draft: p.draft,
-      url: p.playUrl || p.audioUrl || p.videoUrl || '',
-    }));
+    return all.map((p, i) => {
+      const snippet = p.body ? (p.body.length > 60 ? `${p.body.slice(0, 60)}…` : p.body) : '';
+      return {
+        key: i,
+        id: p.id,
+        title: p.title,
+        date: p.date,
+        type: p.type,
+        draft: p.draft,
+        url: p.playUrl || p.audioUrl || p.videoUrl || '',
+        snippet,
+      };
+    });
   }, [posts, drafts]);
+
+  // Toggle the draft status of a post.  If the post is currently a draft
+  // (`true`) then toggling will publish it (`false`), and vice versa.  After
+  // saving the draft flag the posts list is refreshed.
+  async function toggleDraft(id, currentDraft) {
+    const res = await fetch(`${API_BASE}/api/posts/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
+      body: JSON.stringify({ draft: !currentDraft }),
+    });
+    if (res.status === 401) {
+      toast?.show('Unauthorized (toggle draft).', 'error');
+      return;
+    }
+    if (!res.ok) {
+      toast?.show('Failed to toggle draft', 'error');
+      return;
+    }
+    toast?.show(currentDraft ? 'Published' : 'Unpublished', 'ok');
+    load();
+  }
 
   return (
     <div className="bg-white border border-[#dcdcdc] rounded-lg p-4 sm:p-6">
@@ -156,11 +187,13 @@ export default function ManagePosts({ token, toast }) {
           <table className="w-full text-sm">
             <thead className="text-left text-[#555]">
               <tr>
-                <th className="py-2 pr-4"><input type="checkbox" onChange={(e) => toggleAll(e, 'all')} /></th>
+                <th className="py-2 pr-4"><input type="checkbox" onChange={toggleAll} /></th>
                 <th className="py-2 pr-4">Title</th>
+                <th className="py-2 pr-4">Preview</th>
                 <th className="py-2 pr-4">Date</th>
                 <th className="py-2 pr-4">Type</th>
                 <th className="py-2 pr-4">Draft</th>
+                <th className="py-2 pr-4">Toggle</th>
                 <th className="py-2">Actions</th>
               </tr>
             </thead>
@@ -173,6 +206,7 @@ export default function ManagePosts({ token, toast }) {
                   onToggle={toggleOne}
                   onDelete={delOne}
                   onEdit={startEdit}
+                  onToggleDraft={toggleDraft}
                 />
               ))}
             </tbody>
@@ -209,19 +243,29 @@ export default function ManagePosts({ token, toast }) {
   );
 }
 
-function Row({ row, checked, onToggle, onDelete, onEdit }) {
+function Row({ row, checked, onToggle, onDelete, onEdit, onToggleDraft }) {
+  // Apply a yellow background to draft rows to help users differentiate drafts
+  // from published posts.  Each row displays a preview snippet, the publish
+  // state and a button to toggle draft status.
   return (
-    <tr className="border-t border-[#eee]">
+    <tr className={`border-t border-[#eee] align-top ${row.draft ? 'bg-yellow-50' : ''}`}>
       <td className="py-2 pr-4"><input type="checkbox" checked={checked} onChange={(e) => onToggle(row.id, e.target.checked)} /></td>
-      <td className="py-2 pr-4">{row.title}</td>
-      <td className="py-2 pr-4">{row.date ? new Date(row.date).toLocaleString() : ''}</td>
-      <td className="py-2 pr-4 uppercase">{row.type}</td>
-      <td className="py-2 pr-4">{row.draft ? 'Yes' : 'No'}</td>
+      <td className="py-2 pr-4 whitespace-nowrap">{row.title}</td>
+      <td className="py-2 pr-4 max-w-xs truncate" title={row.snippet}>{row.snippet}</td>
+      <td className="py-2 pr-4 whitespace-nowrap">{row.date ? new Date(row.date).toLocaleString() : ''}</td>
+      <td className="py-2 pr-4 uppercase whitespace-nowrap">{row.type}</td>
+      <td className="py-2 pr-4 whitespace-nowrap">{row.draft ? 'Yes' : 'No'}</td>
+      <td className="py-2 pr-4 whitespace-nowrap">
+        <button
+          onClick={() => onToggleDraft(row.id, row.draft)}
+          className={`px-3 py-1 rounded text-white text-xs ${row.draft ? 'bg-green-600 hover:bg-green-700' : 'bg-yellow-600 hover:bg-yellow-700'}`}
+        >{row.draft ? 'Publish' : 'Unpublish'}</button>
+      </td>
       <td className="py-2">
-        <div className="flex gap-2">
-          <button onClick={() => onEdit(row)} className="px-3 py-1 bg-[#052962] text-white rounded">Edit</button>
-          {row.url && <a href={row.url} target="_blank" className="px-3 py-1 border border-[#dcdcdc] rounded">Open</a>}
-          <button onClick={() => onDelete(row.id)} className="px-3 py-1 bg-[#c70000] text-white rounded">Delete</button>
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={() => onEdit(row)} className="px-3 py-1 bg-[#052962] text-white rounded text-xs">Edit</button>
+          {row.url && <a href={row.url} target="_blank" className="px-3 py-1 border border-[#dcdcdc] rounded text-xs">Open</a>}
+          <button onClick={() => onDelete(row.id)} className="px-3 py-1 bg-[#c70000] text-white rounded text-xs">Delete</button>
         </div>
       </td>
     </tr>

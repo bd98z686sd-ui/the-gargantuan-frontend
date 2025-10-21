@@ -88,7 +88,11 @@ export default function Home() {
                 <h2 className="text-2xl sm:text-3xl font-serif font-semibold mb-2">{hero.title}</h2>
                 {hero.date && <p className="text-xs text-[#666]">{hero.date}</p>}
                 {hero.body && (
-                  <div className="prose max-w-none text-sm" dangerouslySetInnerHTML={{ __html: marked.parse(hero.body) }} />
+                  // Render the body without relying on the Tailwind Typography
+                  // `.prose` class (which may not be available).  Markdown
+                  // content is converted to HTML using `marked.parse` and we
+                  // preserve whitespace via `whitespace-pre-wrap`.
+                  <div className="text-sm whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: marked.parse(hero.body) }} />
                 )}
               </div>
             </article>
@@ -128,7 +132,7 @@ export default function Home() {
               <h5 className="font-headline text-xl mb-1">{p.title}</h5>
               {p.date && <p className="text-xs text-[#666]">{p.date}</p>}
               {p.body && (
-                <div className="prose max-w-none text-xs" dangerouslySetInnerHTML={{ __html: marked.parse(p.body) }} />
+                <div className="text-xs whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: marked.parse(p.body) }} />
               )}
             </div>
           </article>
