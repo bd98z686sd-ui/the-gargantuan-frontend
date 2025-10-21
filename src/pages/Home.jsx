@@ -45,6 +45,31 @@ export default function Home() {
   const hero = normalized[0];
   const rest = normalized.slice(1);
 
+  // Build a full archive grouped by date (year-month-day).  Each group has
+  // a display string (e.g. "21 October 2025") and all posts for that day.  We
+  // sort the groups descending by date.  We compute this from the original
+  // `posts` array so that we have access to the ISO timestamps.
+  const archive = useMemo(() => {
+    const byDate = {};
+    (posts || []).forEach((p) => {
+      if (!p || !p.date) return;
+      const dt = new Date(p.date);
+      if (Number.isNaN(dt)) return;
+      const key = dt.toISOString().split('T')[0]; // YYYY-MM-DD
+      const display = dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+      if (!byDate[key]) byDate[key] = { display, posts: [] };
+      byDate[key].posts.push(p);
+    });
+    // Convert object to array and sort descending by date
+    return Object.values(byDate).sort((a, b) => {
+      // Compare by date string (descending)
+      // Extract date from one of the posts in each group (they all share the same date)
+      const da = new Date(a.posts[0].date);
+      const db = new Date(b.posts[0].date);
+      return db - da;
+    });
+  }, [posts]);
+
   // Helper to extract the first image URL from a Markdown string.  Returns
   // undefined if no image is present.  This allows us to display images
   // embedded in the body as the hero or card image when no dedicated
@@ -86,33 +111,52 @@ export default function Home() {
         {error && <div className="bg-white border border-[#dcdcdc] rounded p-4 text-red-600">{error}</div>}
 
       {hero && (
-        <article className="bg-white rounded-lg border border-[#dcdcdc] overflow-hidden">
-          <div className="relative">
-            {/* Render hero media.  For image posts or posts with an embedded image in the body, show the image. */}
-            {hero.type === 'video' && hero.videoUrl && (
-              <video className="w-full aspect-video" src={hero.videoUrl} controls playsInline />
-            )}
-            {hero.type === 'audio' && hero.audioUrl && (
-              <audio className="w-full" src={hero.audioUrl} controls />
-            )}
-            {/* If imageUrl is provided or the body contains an image, show the image. */}
-            {((hero.type === 'image' && hero.imageUrl) || extractFirstImage(hero.body)) && (
-              <img
-                className="w-full aspect-video object-cover"
-                src={hero.imageUrl || extractFirstImage(hero.body)}
-                alt={hero.title}
-              />
-            )}
-            {/* For text-only posts, omit the placeholder so the card is text-driven. */}
-          </div>
-          <div className="p-5 sm:p-6 space-y-3">
-            <h2 className="text-2xl sm:text-3xl font-serif font-semibold mb-2">{hero.title}</h2>
-            {hero.date && <p className="text-xs text-[#666]">{hero.date}</p>}
-            {hero.body && (
-              <div className="prose max-w-none text-sm" dangerouslySetInnerHTML={{ __html: marked.parse(hero.body) }} />
-            )}
-          </div>
-        </article>
+        <section className="grid md:grid-cols-2 gap-8">
+          {/* Hero card occupies the left column */}
+          <article className="bg-white rounded-lg border border-[#dcdcdc] overflow-hidden">
+            <div className="relative">
+              {/* Render hero media.  For image posts or posts with an embedded image in the body, show the image. */}
+              {hero.type === 'video' && hero.videoUrl && (
+                <video className="w-full aspect-video" src={hero.videoUrl} controls playsInline />
+              )}
+              {hero.type === 'audio' && hero.audioUrl && (
+                <audio className="w-full" src={hero.audioUrl} controls />
+              )}
+              {/* If imageUrl is provided or the body contains an image, show the image. */}
+              {((hero.type === 'image' && hero.imageUrl) || extractFirstImage(hero.body)) && (
+                <img
+                  className="w-full aspect-video object-cover"
+                  src={hero.imageUrl || extractFirstImage(hero.body)}
+                  alt={hero.title}
+                />
+              )}
+              {/* For text-only posts, omit the placeholder so the card is text-driven. */}
+            </div>
+            <div className="p-5 sm:p-6 space-y-3">
+              <h2 className="text-2xl sm:text-3xl font-serif font-semibold mb-2">{hero.title}</h2>
+              {hero.date && <p className="text-xs text-[#666]">{hero.date}</p>}
+              {hero.body && (
+                <div className="prose max-w-none text-sm" dangerouslySetInnerHTML={{ __html: marked.parse(hero.body) }} />
+              )}
+            </div>
+          </article>
+          {/* Recents/Archive column occupies the right column */}
+          <aside className="max-h-full overflow-y-auto space-y-4" style={{ maxHeight: 'calc(100vh - 15rem)' }}>
+            <h3 className="font-headline text-xl">Recent</h3>
+            <div className="border-t border-[#dcdcdc]" />
+            {archive.length === 0 && <p className="text-sm text-[#666]">No posts.</p>}
+            {archive.map((group) => (
+              <div key={group.display} className="mb-3">
+                <h4 className="text-xs sm:text-sm font-semibold text-[#555] mb-1">{group.display}</h4>
+                {group.posts.map((p) => (
+                  <a key={p.id} href="#" className="block hover:underline">
+                    <span className="font-serif">{p.title}</span>
+                  </a>
+                ))}
+              </div>
+            ))}
+          </aside>
+        </section>
       )}
 
       <section className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
