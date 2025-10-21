@@ -61,9 +61,9 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="py-3 sm:py-4 border-b-4 border-[#c70000]">
             <h1 className="text-5xl sm:text-6xl font-serif italic font-extrabold tracking-tight">The Gargantuan</h1>
-            <p className="text-xs sm:text-sm mt-1 text-white/80">{today} · Edited by The Gargantuan</p>
+            <p className="text-xs sm:text-sm mt-1 text-white/80 ml-0">{today} · Edited by The Gargantuan</p>
             {/* Tagline explaining the content order */}
-            <p className="text-xs sm:text-sm mt-1 italic text-white/70">Daily audio, spectral video & shorts — latest first</p>
+            <p className="text-xs sm:text-sm mt-1 italic text-white/70 ml-0">Daily audio, spectral video & shorts — latest first</p>
           </div>
           <nav className="flex gap-5 py-2 sm:py-3 text-xs sm:text-sm uppercase tracking-wide font-semibold">
             {[
@@ -86,53 +86,37 @@ export default function Home() {
         {error && <div className="bg-white border border-[#dcdcdc] rounded p-4 text-red-600">{error}</div>}
 
       {hero && (
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="md:col-span-2">
-            <article className="bg-white rounded-lg border border-[#dcdcdc] overflow-hidden">
-              <div className="relative">
-                {/* Render hero media.  For image posts or posts with an embedded image in the body, show the image. */}
-                {hero.type === 'video' && hero.videoUrl && (
-                  <video className="w-full aspect-video" src={hero.videoUrl} controls playsInline />
-                )}
-                {hero.type === 'audio' && hero.audioUrl && (
-                  <audio className="w-full" src={hero.audioUrl} controls />
-                )}
-                {/* If imageUrl is provided or the body contains an image, show the image. */}
-                {((hero.type === 'image' && hero.imageUrl) || extractFirstImage(hero.body)) && (
-                  <img
-                    className="w-full aspect-video object-cover"
-                    src={hero.imageUrl || extractFirstImage(hero.body)}
-                    alt={hero.title}
-                  />
-                )}
-                {/* For text-only posts, omit the placeholder so the card is text-driven. */}
-              </div>
-              <div className="p-5 sm:p-6 space-y-3">
-                <h2 className="text-2xl sm:text-3xl font-serif font-semibold mb-2">{hero.title}</h2>
-                {hero.date && <p className="text-xs text-[#666]">{hero.date}</p>}
-                {hero.body && (
-                  <div className="prose max-w-none text-sm" dangerouslySetInnerHTML={{ __html: marked.parse(hero.body) }} />
-                )}
-              </div>
-            </article>
+        <article className="bg-white rounded-lg border border-[#dcdcdc] overflow-hidden">
+          <div className="relative">
+            {/* Render hero media.  For image posts or posts with an embedded image in the body, show the image. */}
+            {hero.type === 'video' && hero.videoUrl && (
+              <video className="w-full aspect-video" src={hero.videoUrl} controls playsInline />
+            )}
+            {hero.type === 'audio' && hero.audioUrl && (
+              <audio className="w-full" src={hero.audioUrl} controls />
+            )}
+            {/* If imageUrl is provided or the body contains an image, show the image. */}
+            {((hero.type === 'image' && hero.imageUrl) || extractFirstImage(hero.body)) && (
+              <img
+                className="w-full aspect-video object-cover"
+                src={hero.imageUrl || extractFirstImage(hero.body)}
+                alt={hero.title}
+              />
+            )}
+            {/* For text-only posts, omit the placeholder so the card is text-driven. */}
           </div>
-
-          <aside className="space-y-4">
-            <h3 className="font-headline text-xl">Recent</h3>
-            <div className="border-t border-[#dcdcdc]" />
-            {rest.length === 0 && <p className="text-sm text-[#666]">No recent items.</p>}
-            {rest.slice(0, 4).map((p) => (
-              <a key={p.id} href="#" className="block hover:underline">
-                <div className="font-serif">{p.title}</div>
-                {p.date && <div className="text-xs text-[#666]">{p.date}</div>}
-              </a>
-            ))}
-          </aside>
-        </section>
+          <div className="p-5 sm:p-6 space-y-3">
+            <h2 className="text-2xl sm:text-3xl font-serif font-semibold mb-2">{hero.title}</h2>
+            {hero.date && <p className="text-xs text-[#666]">{hero.date}</p>}
+            {hero.body && (
+              <div className="prose max-w-none text-sm" dangerouslySetInnerHTML={{ __html: marked.parse(hero.body) }} />
+            )}
+          </div>
+        </article>
       )}
 
       <section className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-        {rest.slice(4).map((p) => (
+        {rest.map((p) => (
           <article key={p.id} className="bg-white rounded-lg border border-[#dcdcdc] overflow-hidden hover:shadow transition">
             {/* Render card media.  Prioritise video, audio, explicit imageUrl, then embedded image in body. */}
             {p.type === 'video' && p.videoUrl && (
