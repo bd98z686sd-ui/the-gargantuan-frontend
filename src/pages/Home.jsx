@@ -52,10 +52,20 @@ export default function Home() {
           <div className="py-3 sm:py-4 border-b-4 border-[#c70000]">
             <h1 className="text-5xl sm:text-6xl font-serif italic font-extrabold tracking-tight">The Gargantuan</h1>
             <p className="text-xs sm:text-sm mt-1 text-white/80">{today} · Edited by The Gargantuan</p>
+            {/* Tagline explaining the content order */}
+            <p className="text-xs sm:text-sm mt-1 italic text-white/70">Daily audio, spectral video & shorts — latest first</p>
           </div>
           <nav className="flex gap-5 py-2 sm:py-3 text-xs sm:text-sm uppercase tracking-wide font-semibold">
-            {["News","Culture","Sound","Ideas","Dispatches"].map((item)=>(
-              <a key={item} href="#" className="hover:underline decoration-2 underline-offset-4 decoration-[#c70000]">{item}</a>
+            {[
+              'News',
+              'Culture',
+              'Sound',
+              'Ideas',
+              'Dispatches',
+            ].map((item) => (
+              <a key={item} href="#" className="hover:underline decoration-2 underline-offset-4 decoration-[#c70000]">
+                {item}
+              </a>
             ))}
           </nav>
         </div>
@@ -66,64 +76,79 @@ export default function Home() {
         {error && <div className="bg-white border border-[#dcdcdc] rounded p-4 text-red-600">{error}</div>}
 
       {hero && (
-        <section className="space-y-8">
-          {/* Hero post */}
-          <article className="bg-white rounded-lg border border-[#dcdcdc] overflow-hidden">
-            <div className="relative">
-              {hero.type === 'video' && hero.videoUrl && (
-                <video className="w-full aspect-video" src={hero.videoUrl} controls playsInline />
-              )}
-              {hero.type === 'audio' && hero.audioUrl && (
-                <audio className="w-full" src={hero.audioUrl} controls />
-              )}
-              {hero.type === 'image' && hero.imageUrl && (
-                <img className="w-full aspect-video object-cover" src={hero.imageUrl} alt={hero.title} />
-              )}
-              {hero.type === 'text' && (
-                <div className="w-full aspect-video bg-[#052962]" />
-              )}
-            </div>
-            <div className="p-5 sm:p-6 space-y-3">
-              <h2 className="text-3xl sm:text-4xl font-serif font-bold mb-2">{hero.title}</h2>
-              {hero.date && <p className="text-sm text-[#666]">{hero.date}</p>}
-              {hero.body && (
-                <div className="text-sm whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: marked.parse(hero.body) }} />
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="md:col-span-2">
+            <article className="bg-white rounded-lg border border-[#dcdcdc] overflow-hidden">
+              <div className="relative">
+                {/* Render hero media */}
+                {hero.type === 'video' && hero.videoUrl && (
+                  <video className="w-full aspect-video" src={hero.videoUrl} controls playsInline />
+                )}
+                {hero.type === 'audio' && hero.audioUrl && (
+                  <audio className="w-full" src={hero.audioUrl} controls />
+                )}
+                {hero.type === 'image' && hero.imageUrl && (
+                  <img className="w-full aspect-video object-cover" src={hero.imageUrl} alt={hero.title} />
+                )}
+                {hero.type === 'text' && (
+                  <div className="w-full aspect-video bg-[#052962]" />
+                )}
+              </div>
+              <div className="p-5 sm:p-6 space-y-3">
+                <h2 className="text-2xl sm:text-3xl font-serif font-semibold mb-2">{hero.title}</h2>
+                {hero.date && <p className="text-xs text-[#666]">{hero.date}</p>}
+                {hero.body && (
+                  <div className="prose max-w-none text-sm" dangerouslySetInnerHTML={{ __html: marked.parse(hero.body) }} />
+                )}
+              </div>
+            </article>
+          </div>
+
+          <aside className="space-y-4">
+            <h3 className="font-headline text-xl">Recent</h3>
+            <div className="border-t border-[#dcdcdc]" />
+            {rest.length === 0 && <p className="text-sm text-[#666]">No recent items.</p>}
+            {rest.slice(0, 4).map((p) => (
+              <a key={p.id} href="#" className="block hover:underline">
+                <div className="font-serif">{p.title}</div>
+                {p.date && <div className="text-xs text-[#666]">{p.date}</div>}
+              </a>
+            ))}
+          </aside>
+        </section>
+      )}
+
+      <section className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        {rest.slice(4).map((p) => (
+          <article key={p.id} className="bg-white rounded-lg border border-[#dcdcdc] overflow-hidden hover:shadow transition">
+            {/* Render card media */}
+            {p.type === 'video' && p.videoUrl && (
+              <video className="w-full aspect-video" src={p.videoUrl} controls playsInline />
+            )}
+            {p.type === 'audio' && p.audioUrl && (
+              <audio className="w-full" src={p.audioUrl} controls />
+            )}
+            {p.type === 'image' && p.imageUrl && (
+              <img className="w-full aspect-video object-cover" src={p.imageUrl} alt={p.title} />
+            )}
+            {p.type === 'text' && (
+              <div className="w-full aspect-video bg-[#052962]" />
+            )}
+            <div className="p-4 space-y-2">
+              <h5 className="font-headline text-xl mb-1">{p.title}</h5>
+              {p.date && <p className="text-xs text-[#666]">{p.date}</p>}
+              {p.body && (
+                <div className="prose max-w-none text-xs" dangerouslySetInnerHTML={{ __html: marked.parse(p.body) }} />
               )}
             </div>
           </article>
-          {/* Remaining posts: display in a responsive grid with embedded media */}
-          {rest.length > 0 && (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {rest.map((p) => (
-                <article key={p.id} className="bg-white rounded-lg border border-[#dcdcdc] overflow-hidden hover:shadow transition">
-                  {p.type === 'video' && p.videoUrl && (
-                    <video className="w-full aspect-video" src={p.videoUrl} controls playsInline />
-                  )}
-                  {p.type === 'audio' && p.audioUrl && (
-                    <audio className="w-full" src={p.audioUrl} controls />
-                  )}
-                  {p.type === 'image' && p.imageUrl && (
-                    <img className="w-full aspect-video object-cover" src={p.imageUrl} alt={p.title} />
-                  )}
-                  {p.type === 'text' && (
-                    <div className="w-full aspect-video bg-[#052962]" />
-                  )}
-                  <div className="p-4 space-y-2">
-                    <h5 className="font-headline text-xl mb-1">{p.title}</h5>
-                    {p.date && <p className="text-xs text-[#666]">{p.date}</p>}
-                    {p.body && (
-                      <div className="text-xs whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: marked.parse(p.body) }} />
-                    )}
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
+        ))}
+      </section>
+        {/* Red line separating content and footer */}
+        <div className="border-t-4 border-[#c70000] mt-8" />
       </main>
 
-      <footer className="mt-10 bg-[#052962] text-white">
+      <footer className="bg-[#052962] text-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
           <p className="font-serif text-lg">© {new Date().getFullYear()} The Gargantuan</p>
           <p className="text-sm text-white/80">Contact: hellogargantuan69@gmail.com</p>

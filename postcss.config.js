@@ -1,15 +1,11 @@
-/**
- * Minimal PostCSS configuration.
- *
- * Vercel attempts to load PostCSS plugins declared in this file.  Previous
- * versions of the project referenced the Tailwind CSS plugin here, which
- * caused builds to fail when Tailwind was removed from the dependencies.
- *
- * By exporting an empty plugins object we avoid loading any external
- * PostCSS plugins.  CSS will still be processed by Vite’s default
- * configuration and vendor prefixes will be added by the built‑in
- * autoprefixer (no need to specify it here).
- */
-module.exports = {
-  plugins: {},
+// PostCSS configuration for Tailwind CSS
+// We use the standard tailwindcss and autoprefixer plugins rather than
+// @tailwindcss/postcss because the latter may be private or otherwise
+// unavailable on some package registries (causing installation failures on
+// platforms such as Vercel).  This configuration mirrors the default setup
+// recommended by the Tailwind CSS documentation.
+export default {
+  plugins: {
+    tailwindcss: {},
+  },
 };

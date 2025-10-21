@@ -21,6 +21,15 @@ export default function Publish({ token, toast, onDone }) {
   const audioRef = useRef(null);
   const imageInputRef = useRef(null);
 
+  // Optional cover image and video generation flag.  The cover image will be
+  // displayed on the homepage when no video is generated.  GenerateVideo
+  // determines whether to call the /api/generate-video endpoint for audio
+  // uploads.  Default true (to preserve existing behaviour) but can be
+  // unchecked to skip video creation and publish audio-only with a cover.
+  const [coverFile, setCoverFile] = useState(null);
+  const [coverUrl, setCoverUrl] = useState('');
+  const [generateVideo, setGenerateVideo] = useState(true);
+
   // Insert an image into the markdown.  When the user selects a file this
   // handler uploads it to the `/api/images/upload` endpoint and inserts the
   // returned URL into the editor at the current cursor position.
@@ -53,6 +62,52 @@ export default function Publish({ token, toast, onDone }) {
       imageInputRef.current.value = '';
     } catch (err) {
       toast?.show(err.message || 'Image upload failed', 'error');
+    }
+  }
+
+  // Handle selection of a cover image file.  Stores the file in state and
+  // triggers an immediate upload so that a URL is ready when publishing.
+  function handleCoverChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCoverFile(file);
+    // Reset existing URL to ensure new upload occurs.
+    setCoverUrl('');
+    // Kick off the upload immediately so the admin gets feedback.
+    uploadCover();
+  }
+
+  // Upload the selected cover image to the server and set coverUrl.  This can be
+  // invoked directly when the file input changes or lazily in handlePublish
+  // before creating a post.  It returns the URL of the uploaded image.
+  async function uploadCover() {
+    if (!coverFile) return '';
+    // If we've already uploaded this cover, return the cached URL.
+    if (coverUrl) return coverUrl;
+    if (!token) {
+      toast?.show('Unauthorized (cover upload).', 'error');
+      return '';
+    }
+    try {
+      const fd = new FormData();
+      fd.append('image', coverFile);
+      const res = await fetch(`${API_BASE}/api/images/upload`, {
+        method: 'POST',
+        headers: { 'x-admin-token': token },
+        body: fd,
+      });
+      if (res.status === 401) {
+        unauthorized('cover');
+        return '';
+      }
+      if (!res.ok) throw new Error(`Cover upload failed (${res.status})`);
+      const { url } = await res.json();
+      setCoverUrl(url);
+      toast?.show('Cover uploaded', 'ok');
+      return url;
+    } catch (err) {
+      toast?.show(err.message || 'Cover upload failed', 'error');
+      return '';
     }
   }
 
@@ -105,14 +160,13 @@ export default function Publish({ token, toast, onDone }) {
           else toast?.show(err.message || 'Upload failed', 'error');
           throw err;
         });
-        // Step 2: generate video.  This may take a while and could fail if
-        // ffmpeg is not available or the input is unsupported.  We wrap the
-        // generation in a try/catch so we can gracefully fall back to an
-        // audio‑only post if it fails.
-        setStatus('generating');
-        setMessage('Generating video…');
-        let generatedId;
-        try {
+        // Step 1.5: upload cover if provided
+        const cover = await uploadCover();
+        // Step 2: optionally generate video
+        let postId;
+        if (generateVideo) {
+          setStatus('generating');
+          setMessage('Generating video…');
           const genRes = await fetch(`${API_BASE}/api/generate-video`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
@@ -123,21 +177,19 @@ export default function Publish({ token, toast, onDone }) {
             return;
           }
           if (!genRes.ok) throw new Error(`Generate failed (${genRes.status})`);
-          const genJson = await genRes.json();
-          generatedId = genJson.id;
-        } catch (err) {
-          console.error('generate-video failed', err);
-          // Fallback: use the id from the upload and proceed without a video.
-          generatedId = upRes.id;
-          setStatus('saving');
-          setMessage('Video generation failed. Saving audio post…');
+          const { id } = await genRes.json();
+          postId = id;
+        } else {
+          // Without video generation, use the audio upload id as post id
+          postId = upRes.id;
         }
-        // Step 3: patch metadata with title, body, image and draft flag.  If
-        // generation failed the post will remain audio‑only.
-        const patchRes = await fetch(`${API_BASE}/api/posts/${encodeURIComponent(generatedId)}`, {
+        // Step 3: patch metadata with body, cover image and draft flag
+        setStatus('saving');
+        setMessage('Saving metadata…');
+        const patchRes = await fetch(`${API_BASE}/api/posts/${encodeURIComponent(postId)}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
-          body: JSON.stringify({ title, body, imageUrl: '', draft }),
+          body: JSON.stringify({ title, body, imageUrl: cover || '', draft }),
         });
         if (patchRes.status === 401) {
           unauthorized('patch');
@@ -152,10 +204,11 @@ export default function Publish({ token, toast, onDone }) {
         // No audio; create text/image post directly
         setStatus('publishing');
         setMessage('Publishing…');
+        const cover = await uploadCover();
         const res = await fetch(`${API_BASE}/api/create-post`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
-          body: JSON.stringify({ title, body, imageUrl: '', published: !draft }),
+          body: JSON.stringify({ title, body, imageUrl: cover || '', published: !draft }),
         });
         if (res.status === 401) {
           unauthorized('create');
@@ -171,7 +224,11 @@ export default function Publish({ token, toast, onDone }) {
       setTitle('The Gargantuan');
       setBody('');
       setDraft(false);
+      setCoverFile(null);
+      setCoverUrl('');
+      setGenerateVideo(true);
       if (audioRef.current) audioRef.current.value = '';
+      // Reset file input for cover (handled via controlled state on input)
     } catch (err) {
       console.error(err);
     }
@@ -204,11 +261,24 @@ export default function Publish({ token, toast, onDone }) {
             </label>
           </div>
         </div>
+        {/* Cover image upload (optional) */}
+        <div>
+          <label className="block mb-1 text-sm font-semibold">Cover image (optional)</label>
+          <input type="file" accept="image/*" onChange={handleCoverChange}
+            className="w-full text-sm file:mr-4 file:py-2 file:px-3 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-[#052962] file:text-white hover:file:bg-[#173a7a]" />
+          {coverUrl && <p className="text-xs mt-1 text-[#052962]">Cover uploaded ✓</p>}
+        </div>
         <div>
           <label className="block mb-1 text-sm font-semibold">Optional audio (MP3/WAV)</label>
           <input type="file" accept="audio/*" ref={audioRef}
             className="w-full text-sm file:mr-4 file:py-2 file:px-3 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-[#052962] file:text-white hover:file:bg-[#173a7a]" />
         </div>
+        {audioRef.current?.files?.[0] && (
+          <div className="flex items-center gap-2">
+            <input type="checkbox" id="generateVideo" checked={generateVideo} onChange={(e) => setGenerateVideo(e.target.checked)} />
+            <label htmlFor="generateVideo" className="text-sm">Generate spectral video</label>
+          </div>
+        )}
         <div className="flex justify-end gap-3 items-center">
           {status === 'uploading' && (<div className="w-full bg-[#eee] rounded h-2 overflow-hidden"><div className="h-2 bg-[#052962]" style={{ width: `${progress}%` }} /></div>)}
           {status === 'generating' && (<div className="w-full bg-[#eee] rounded h-2 overflow-hidden relative"><div className="h-2 bg-[#052962] animate-pulse w-1/3 absolute left-0" /></div>)}
