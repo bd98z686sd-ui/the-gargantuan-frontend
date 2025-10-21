@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import MDEditor from '@uiw/react-md-editor';
+import { marked } from 'marked';
 
 /**
  * Public feed component. This layout emphasises the most recent post but
@@ -166,7 +166,12 @@ export default function Home() {
           )}
           {/* Hero body */}
           <div data-color-mode="light" style={{ marginTop: '1rem', fontSize: '0.9rem', lineHeight: '1.4' }}>
-            <MDEditor.Markdown source={heroPost.body || ''} />
+            {/* Render Markdown to HTML using marked.  marked returns a string
+                containing HTML which is then inserted using
+                dangerouslySetInnerHTML. */}
+            <div
+              dangerouslySetInnerHTML={{ __html: marked(heroPost.body || '') }}
+            />
           </div>
         </section>
         {/* Recents sidebar */}
@@ -256,9 +261,15 @@ export default function Home() {
               )}
               {/* Only render body for posts with no media to avoid overly long cards */}
               {(!post.playUrl && !post.imageUrl) && (
-                <div data-color-mode="light" style={{ fontSize: '0.8rem', lineHeight: '1.4' }}>
-                  <MDEditor.Markdown source={(post.body || '').slice(0, 200) + (post.body && post.body.length > 200 ? '…' : '')} />
-                </div>
+                <div
+                  style={{ fontSize: '0.8rem', lineHeight: '1.4' }}
+                  dangerouslySetInnerHTML={{
+                    __html: marked(
+                      (post.body || '').slice(0, 200) +
+                      (post.body && post.body.length > 200 ? '…' : ''),
+                    ),
+                  }}
+                />
               )}
             </article>
           ))}

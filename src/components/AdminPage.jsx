@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
-import MDEditor from '@uiw/react-md-editor';
+// Remove MDEditor in favour of a simple textarea.  The original
+// dependency @uiw/react-md-editor failed to install on Vercel due
+// to unavailable versions.  Authors can still write Markdown manually
+// and it will be rendered on the public site using the marked library.
 
 const ADMIN_TOKEN = import.meta.env.VITE_ADMIN_TOKEN || '';
 const API_BASE = import.meta.env.VITE_API_BASE || '';
@@ -301,7 +304,12 @@ export default function AdminPage() {
         </label>
       </div>
       <div style={{ marginBottom: '1rem' }}>
-        <MDEditor value={body} onChange={setBody} height={200} />
+        <textarea
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          style={{ width: '100%', height: '200px', padding: '0.5rem', fontFamily: 'monospace', fontSize: '0.9rem' }}
+          placeholder="Write your post in Markdown here..."
+        />
       </div>
       <div style={{ marginBottom: '1rem' }}>
         <button type="button" onClick={handleInsertImage}>Insert image</button>
