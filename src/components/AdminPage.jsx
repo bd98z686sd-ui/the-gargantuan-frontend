@@ -16,6 +16,13 @@ export default function AdminPage() {
   const [title, setTitle] = useState('The Gargantuan');
   const [body, setBody] = useState('');
   const [audioFile, setAudioFile] = useState(null);
+  // Optional cover image file and uploaded URL.  The cover image is used
+  // when posting text or audio‑only entries.  It is uploaded via the
+  // images/upload endpoint and the returned URL is stored in coverImageUrl.
+  const [coverFile, setCoverFile] = useState(null);
+  const [coverImageUrl, setCoverImageUrl] = useState('');
+  // Whether to generate a spectral video when an audio file is present.
+  const [generateVideo, setGenerateVideo] = useState(true);
   const [isDraft, setIsDraft] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(null);
@@ -28,6 +35,9 @@ export default function AdminPage() {
   const [editingId, setEditingId] = useState(null);
   // Ref to file input for images
   const imageInputRef = useRef();
+
+  // Ref to cover image file input
+  const coverInputRef = useRef();
 
   // Load published and draft posts
   const loadLists = async () => {
@@ -59,6 +69,9 @@ export default function AdminPage() {
     setIsDraft(false);
     setEditingId(null);
     setProgress(null);
+    setCoverFile(null);
+    setCoverImageUrl('');
+    setGenerateVideo(true);
   };
 
   /** Handle image upload triggered by the insert image button.  Opens
@@ -90,6 +103,34 @@ export default function AdminPage() {
     }
   };
 
+  /** Handle selection of a cover image.  The selected file is uploaded
+   * immediately and the returned URL stored in state so it can be used
+   * when saving the post.  Covers are optional; if none is provided the
+   * backend will fall back to displaying nothing or using the first
+   * embedded image in the Markdown body.
+   */
+  const onCoverSelected = async (event) => {
+    const file = event.target.files[0];
+    setCoverFile(file || null);
+    if (!file) {
+      setCoverImageUrl('');
+      return;
+    }
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const resp = await axios.post(`${API_BASE}/api/images/upload`, formData, {
+        headers: {
+          'x-admin-token': ADMIN_TOKEN,
+        },
+      });
+      setCoverImageUrl(resp.data.url);
+    } catch (err) {
+      console.error('Cover image upload failed', err);
+      alert('Cover image upload failed');
+    }
+  };
+
   /** Submit handler for the publish button.  Determines whether an audio
    * upload is involved; if so the audio is uploaded and a video is
    * generated.  Otherwise a text/image post is created directly.  Draft
@@ -111,41 +152,48 @@ export default function AdminPage() {
           headers: { 'x-admin-token': ADMIN_TOKEN },
         });
         const filename = uploadResp.data.filename;
-        // Step 2: generate video
-        const genResp = await axios.post(
-          `${API_BASE}/api/generate-video`,
-          { filename, title },
-          { headers: { 'x-admin-token': ADMIN_TOKEN } },
-        );
-        const { jobId } = genResp.data;
-        // Step 3: poll job until done
-        let complete = false;
-        while (!complete) {
-          await new Promise((resolve) => setTimeout(resolve, 1200));
-          const jobResp = await axios.get(`${API_BASE}/api/jobs/${jobId}`);
-          const job = jobResp.data;
-          setProgress(job.progress);
-          if (job.status === 'done') {
-            complete = true;
-          } else if (job.status === 'error') {
-            throw new Error(job.error);
+        const id = filename.substring(0, filename.lastIndexOf('.'));
+        if (generateVideo) {
+          // Generate a video from the uploaded audio
+          const genResp = await axios.post(
+            `${API_BASE}/api/generate-video`,
+            { filename, title },
+            { headers: { 'x-admin-token': ADMIN_TOKEN } },
+          );
+          const { jobId } = genResp.data;
+          // Poll job until done
+          let complete = false;
+          while (!complete) {
+            await new Promise((resolve) => setTimeout(resolve, 1200));
+            const jobResp = await axios.get(`${API_BASE}/api/jobs/${jobId}`);
+            const job = jobResp.data;
+            setProgress(job.progress);
+            if (job.status === 'done') {
+              complete = true;
+            } else if (job.status === 'error') {
+              throw new Error(job.error);
+            }
           }
         }
-        // Step 4: update metadata
-        const id = filename.substring(0, filename.lastIndexOf('.'));
+        // Whether or not a video was generated, update metadata.  If
+        // generateVideo is false then only the audio exists; the backend
+        // listing logic will treat this as an audio post.  Include the
+        // optional coverImageUrl so that audio‑only posts can display a
+        // representative image on the front page.
         await axios.patch(
           `${API_BASE}/api/posts/${id}`,
-          { title, body, draft: isDraft },
+          { title, body, imageUrl: coverImageUrl || undefined, draft: isDraft },
           { headers: { 'x-admin-token': ADMIN_TOKEN } },
         );
       } else {
-        // No audio: create text/image post
+        // No audio: create text or image post.  Provide the coverImageUrl
+        // if one has been uploaded; otherwise leave it blank.
         await axios.post(
           `${API_BASE}/api/create-post`,
           {
             title,
             body,
-            imageUrl: '',
+            imageUrl: coverImageUrl || '',
             published: !isDraft,
           },
           { headers: { 'x-admin-token': ADMIN_TOKEN } },
@@ -267,6 +315,18 @@ export default function AdminPage() {
       </div>
       <div style={{ marginBottom: '1rem' }}>
         <label>
+          Cover image (optional):
+          <input
+            type="file"
+            accept="image/*"
+            ref={coverInputRef}
+            onChange={onCoverSelected}
+            style={{ display: 'block', marginTop: '0.25rem' }}
+          />
+        </label>
+      </div>
+      <div style={{ marginBottom: '1rem' }}>
+        <label>
           Audio (optional):
           <input
             type="file"
@@ -276,6 +336,18 @@ export default function AdminPage() {
           />
         </label>
       </div>
+      {audioFile && (
+        <div style={{ marginBottom: '1rem' }}>
+          <label>
+            <input
+              type="checkbox"
+              checked={generateVideo}
+              onChange={(e) => setGenerateVideo(e.target.checked)}
+            />{' '}
+            Generate spectral video
+          </label>
+        </div>
+      )}
       <div style={{ marginBottom: '1rem' }}>
         <label>
           <input
@@ -309,7 +381,17 @@ export default function AdminPage() {
       <ul style={{ listStyle: 'none', padding: 0 }}>
         {posts.map((post) => (
           <li key={post.id} style={{ marginBottom: '1rem' }}>
-            <strong>{post.title}</strong>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {/* Preview thumbnail if an image is associated with the post */}
+              {post.imageUrl && (
+                <img
+                  src={post.imageUrl}
+                  alt={post.title || ''}
+                  style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '4px' }}
+                />
+              )}
+              <strong>{post.title}</strong>
+            </div>
             <div>
               <button onClick={() => handleEdit(post)}>Edit</button>
               <button onClick={() => handleDelete(post.id)}>Delete</button>
@@ -323,7 +405,16 @@ export default function AdminPage() {
       <ul style={{ listStyle: 'none', padding: 0 }}>
         {drafts.map((post) => (
           <li key={post.id} style={{ marginBottom: '1rem' }}>
-            <strong>{post.title || '(Untitled)'} (draft)</strong>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {post.imageUrl && (
+                <img
+                  src={post.imageUrl}
+                  alt={post.title || ''}
+                  style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '4px' }}
+                />
+              )}
+              <strong>{post.title || '(Untitled)'} (draft)</strong>
+            </div>
             <div>
               <button onClick={() => handleEdit(post)}>Edit</button>
               <button onClick={() => handleDelete(post.id)}>Delete</button>
