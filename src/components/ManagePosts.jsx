@@ -17,6 +17,7 @@ export default function ManagePosts({ token, toast }) {
   const [editTitle, setEditTitle] = useState('');
   const [editBody, setEditBody] = useState('');
   const [editDraft, setEditDraft] = useState(false);
+  const [editDate, setEditDate] = useState('');
 
   async function load() {
     setLoading(true);
@@ -43,7 +44,18 @@ export default function ManagePosts({ token, toast }) {
   function toggleAll(e, which) {
     const checked = e.target.checked;
     const next = { ...selected };
-    const list = which === 'draft' ? drafts : posts;
+    // When `which` is 'draft' select only drafts; when 'all' or any other
+    // value select both posts and drafts.  This ensures the header checkbox
+    // selects every row in the table.
+    let list;
+    if (which === 'draft') {
+      list = drafts;
+    } else if (which === 'posts') {
+      list = posts;
+    } else {
+      // 'all' or undefined
+      list = [...posts, ...drafts];
+    }
     if (checked) list.forEach((p) => { next[p.id] = true; });
     else list.forEach((p) => { next[p.id] = false; });
     setSelected(next);
@@ -58,7 +70,7 @@ export default function ManagePosts({ token, toast }) {
     const res = await fetch(`${API_BASE}/api/posts/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
-      body: JSON.stringify({ title: editTitle, body: editBody, draft: editDraft }),
+      body: JSON.stringify({ title: editTitle, body: editBody, draft: editDraft, date: editDate }),
     });
     if (res.status === 401) {
       toast?.show('Unauthorized (edit). Check token.', 'error');
@@ -87,7 +99,16 @@ export default function ManagePosts({ token, toast }) {
       toast?.show('Delete failed', 'error');
       return;
     }
-    toast?.show('Moved to Trash', 'ok');
+    try {
+      const data = await res.json();
+      if (data.removedMeta) {
+        toast?.show('Deleted', 'ok');
+      } else {
+        toast?.show('Moved to Trash', 'ok');
+      }
+    } catch {
+      toast?.show('Deleted', 'ok');
+    }
     load();
   }
 
@@ -107,7 +128,23 @@ export default function ManagePosts({ token, toast }) {
       toast?.show('Bulk delete failed', 'error');
       return;
     }
-    toast?.show('Selected moved to Trash', 'ok');
+    try {
+      const data = await res.json();
+      // Determine if any posts were permanently deleted (meta-only)
+      const removed = (data.results || []).filter((r) => r.removedMeta).length;
+      const moved = (data.results || []).length - removed;
+      let msg = '';
+      if (removed && moved) {
+        msg = `Deleted ${removed}, moved ${moved} to Trash`;
+      } else if (removed) {
+        msg = `Deleted ${removed}`;
+      } else {
+        msg = `Moved ${moved} to Trash`;
+      }
+      toast?.show(msg, 'ok');
+    } catch {
+      toast?.show('Deleted selected', 'ok');
+    }
     load();
   }
 
@@ -117,6 +154,19 @@ export default function ManagePosts({ token, toast }) {
     setEditTitle(p.title || '');
     setEditBody(p.body || '');
     setEditDraft(p.draft || false);
+    // Convert the ISO date into a value suitable for a datetime-local input (YYYY-MM-DDTHH:MM)
+    try {
+      if (p.date) {
+        const dt = new Date(p.date);
+        // toISOString() returns UTC; slice to minutes (YYYY-MM-DDTHH:MM)
+        const iso = dt.toISOString().slice(0, 16);
+        setEditDate(iso);
+      } else {
+        setEditDate('');
+      }
+    } catch {
+      setEditDate('');
+    }
   }
 
   // Cancel editing.
@@ -215,6 +265,15 @@ export default function ManagePosts({ token, toast }) {
               <div className="flex items-center gap-2">
                 <input type="checkbox" checked={editDraft} onChange={(e) => setEditDraft(e.target.checked)} />
                 <span className="text-sm">Draft</span>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold mb-1">Date & Time</label>
+                <input
+                  type="datetime-local"
+                  value={editDate}
+                  onChange={(e) => setEditDate(e.target.value)}
+                  className="w-full border border-[#dcdcdc] rounded px-3 py-2 text-sm"
+                />
               </div>
               <div className="flex gap-2 justify-end">
                 <button onClick={cancelEdit} className="px-3 py-1 border border-[#dcdcdc] rounded">Cancel</button>
