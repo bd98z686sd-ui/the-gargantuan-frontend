@@ -135,7 +135,7 @@ export default function Home() {
               <div className="w-full aspect-video bg-[#052962]" />
             )}
             <div className="p-4 space-y-2">
-              <h5 className="font-headline text-xl mb-1">{p.title}</h5>
+              <h5 className="font-serif text-xl font-semibold mb-1">{p.title}</h5>
               {p.date && <p className="text-xs text-[#666]">{p.date}</p>}
               {p.body && (
                 <div className="prose max-w-none text-xs" dangerouslySetInnerHTML={{ __html: marked.parse(p.body) }} />
@@ -144,8 +144,6 @@ export default function Home() {
           </article>
         ))}
       </section>
-        {/* Red line separating content and footer */}
-        <div className="border-t-4 border-[#c70000] mt-8" />
       </main>
 
       <footer className="bg-[#052962] text-white">

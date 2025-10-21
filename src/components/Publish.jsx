@@ -273,12 +273,17 @@ export default function Publish({ token, toast, onDone }) {
           <input type="file" accept="audio/*" ref={audioRef}
             className="w-full text-sm file:mr-4 file:py-2 file:px-3 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-[#052962] file:text-white hover:file:bg-[#173a7a]" />
         </div>
-        {audioRef.current?.files?.[0] && (
-          <div className="flex items-center gap-2">
-            <input type="checkbox" id="generateVideo" checked={generateVideo} onChange={(e) => setGenerateVideo(e.target.checked)} />
-            <label htmlFor="generateVideo" className="text-sm">Generate spectral video</label>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="generateVideo"
+            checked={generateVideo}
+            onChange={(e) => setGenerateVideo(e.target.checked)}
+          />
+          <label htmlFor="generateVideo" className="text-sm">
+            Generate spectral video
+          </label>
+        </div>
         <div className="flex justify-end gap-3 items-center">
           {status === 'uploading' && (<div className="w-full bg-[#eee] rounded h-2 overflow-hidden"><div className="h-2 bg-[#052962]" style={{ width: `${progress}%` }} /></div>)}
           {status === 'generating' && (<div className="w-full bg-[#eee] rounded h-2 overflow-hidden relative"><div className="h-2 bg-[#052962] animate-pulse w-1/3 absolute left-0" /></div>)}
