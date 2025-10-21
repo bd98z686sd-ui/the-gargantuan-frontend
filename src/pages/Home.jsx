@@ -45,6 +45,16 @@ export default function Home() {
   const hero = normalized[0];
   const rest = normalized.slice(1);
 
+  // Helper to extract the first image URL from a Markdown string.  Returns
+  // undefined if no image is present.  This allows us to display images
+  // embedded in the body as the hero or card image when no dedicated
+  // imageUrl was supplied.
+  function extractFirstImage(md) {
+    if (!md) return undefined;
+    const match = md.match(/!\[[^\]]*\]\(([^)]+)\)/);
+    return match ? match[1] : undefined;
+  }
+
   return (
     <div className="min-h-screen bg-[#f6f6f6] text-[#121212]">
       <header className="sticky top-0 z-50 bg-[#052962] text-white shadow-sm">
@@ -80,19 +90,22 @@ export default function Home() {
           <div className="md:col-span-2">
             <article className="bg-white rounded-lg border border-[#dcdcdc] overflow-hidden">
               <div className="relative">
-                {/* Render hero media */}
+                {/* Render hero media.  For image posts or posts with an embedded image in the body, show the image. */}
                 {hero.type === 'video' && hero.videoUrl && (
                   <video className="w-full aspect-video" src={hero.videoUrl} controls playsInline />
                 )}
                 {hero.type === 'audio' && hero.audioUrl && (
                   <audio className="w-full" src={hero.audioUrl} controls />
                 )}
-                {hero.type === 'image' && hero.imageUrl && (
-                  <img className="w-full aspect-video object-cover" src={hero.imageUrl} alt={hero.title} />
+                {/* If imageUrl is provided or the body contains an image, show the image. */}
+                {((hero.type === 'image' && hero.imageUrl) || extractFirstImage(hero.body)) && (
+                  <img
+                    className="w-full aspect-video object-cover"
+                    src={hero.imageUrl || extractFirstImage(hero.body)}
+                    alt={hero.title}
+                  />
                 )}
-                {hero.type === 'text' && (
-                  <div className="w-full aspect-video bg-[#052962]" />
-                )}
+                {/* For text-only posts, omit the placeholder so the card is text-driven. */}
               </div>
               <div className="p-5 sm:p-6 space-y-3">
                 <h2 className="text-2xl sm:text-3xl font-serif font-semibold mb-2">{hero.title}</h2>
@@ -121,18 +134,19 @@ export default function Home() {
       <section className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
         {rest.slice(4).map((p) => (
           <article key={p.id} className="bg-white rounded-lg border border-[#dcdcdc] overflow-hidden hover:shadow transition">
-            {/* Render card media */}
+            {/* Render card media.  Prioritise video, audio, explicit imageUrl, then embedded image in body. */}
             {p.type === 'video' && p.videoUrl && (
               <video className="w-full aspect-video" src={p.videoUrl} controls playsInline />
             )}
             {p.type === 'audio' && p.audioUrl && (
               <audio className="w-full" src={p.audioUrl} controls />
             )}
-            {p.type === 'image' && p.imageUrl && (
-              <img className="w-full aspect-video object-cover" src={p.imageUrl} alt={p.title} />
-            )}
-            {p.type === 'text' && (
-              <div className="w-full aspect-video bg-[#052962]" />
+            {((p.type === 'image' && p.imageUrl) || extractFirstImage(p.body)) && (
+              <img
+                className="w-full aspect-video object-cover"
+                src={p.imageUrl || extractFirstImage(p.body)}
+                alt={p.title}
+              />
             )}
             <div className="p-4 space-y-2">
               <h5 className="font-serif text-xl font-semibold mb-1">{p.title}</h5>
