@@ -136,7 +136,7 @@ export default function Home() {
               <h2 className="text-2xl sm:text-3xl font-serif font-semibold mb-2">{hero.title}</h2>
               {hero.date && <p className="text-xs text-[#666]">{hero.date}</p>}
               {hero.body && (
-                <div className="prose max-w-none text-sm" dangerouslySetInnerHTML={{ __html: marked.parse(hero.body) }} />
+                <div className="post-body" dangerouslySetInnerHTML={{ __html: marked.parse(hero.body) }} />
               )}
             </div>
           </article>
@@ -159,7 +159,7 @@ export default function Home() {
         </section>
       )}
 
-      <section className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+      <section className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {rest.map((p) => (
           <article key={p.id} className="bg-white rounded-lg border border-[#dcdcdc] overflow-hidden hover:shadow transition">
             {/* Render card media.  Prioritise video, audio, explicit imageUrl, then embedded image in body. */}
@@ -180,7 +180,7 @@ export default function Home() {
               <h5 className="font-serif text-xl font-semibold mb-1">{p.title}</h5>
               {p.date && <p className="text-xs text-[#666]">{p.date}</p>}
               {p.body && (
-                <div className="prose max-w-none text-xs" dangerouslySetInnerHTML={{ __html: marked.parse(p.body) }} />
+                <div className="post-body text-sm" dangerouslySetInnerHTML={{ __html: marked.parse(p.body) }} />
               )}
             </div>
           </article>

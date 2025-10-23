@@ -12,3 +12,20 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Custom styles for post body content.  These ensure that the
+   Markdown body text is a bit larger for readability and that
+   consecutive images have spacing between them. */
+.post-body {
+  font-size: 1rem; /* base text size */
+  line-height: 1.6;
+}
+.post-body p {
+  margin-bottom: 0.5rem;
+}
+/* Add spacing between consecutive images */
+.post-body img {
+  display: block;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
