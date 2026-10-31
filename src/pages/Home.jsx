@@ -136,3 +136,37 @@ export default function Home() {
         <section className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {rest.map((p) => (
             <article key={p.id} className="bg-white rounded-lg border border-[#dcdcdc] overflow-hidden hover:shadow transition">
+              {p.type === 'video' && p.videoUrl && (
+                <video className="w-full aspect-video" src={p.videoUrl} controls playsInline />
+              )}
+              {p.type === 'audio' && p.audioUrl && (
+                <audio className="w-full" src={p.audioUrl} controls />
+              )}
+              {((p.type === 'image' && p.imageUrl) || extractFirstImage(p.body)) && (
+                <img
+                  className="w-full aspect-video object-cover"
+                  src={p.imageUrl || extractFirstImage(p.body)}
+                  alt={p.title}
+                />
+              )}
+              <div className="p-4 space-y-2">
+                <h5 className="font-serif text-xl font-semibold mb-1">{p.title}</h5>
+                {p.date && <p className="text-xs text-[#666]">{p.date}</p>}
+                {p.body && (
+                  <div className="post-body text-sm" dangerouslySetInnerHTML={{ __html: marked.parse(p.body) }} />
+                )}
+              </div>
+            </article>
+          ))}
+        </section>
+      </main>
+
+      <footer className="bg-[#052962] text-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+          <p className="font-serif text-lg">© {new Date().getFullYear()} The Gargantuan</p>
+          <p className="text-sm text-white/80">Contact: hellogargantuan69@gmail.com</p>
+        </div>
+      </footer>
+    </div>
+  );
+}
