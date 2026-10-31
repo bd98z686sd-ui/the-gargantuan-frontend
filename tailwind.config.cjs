@@ -3,11 +3,12 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        serif: ["Playfair Display", "Georgia", "serif"],
-        headline: ["Archivo Black", "Impact", "sans-serif"],
+        // Source Serif 4 is the closest freely available match to
+        // GH Guardian Headline used by The Guardian.
+        serif: ["Source Serif 4", "Georgia", "serif"],
         sans: ["Inter", "Helvetica", "Arial", "sans-serif"],
       },
     },
   },
   plugins: [],
-}
+};
